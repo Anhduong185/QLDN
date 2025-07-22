@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class NhanVien extends Model
+{
+    use HasFactory;
+
+    protected $connection = 'mysql_nhansu';
+    protected $table = 'nhan_vien';
+
+    protected $fillable = [
+        'ma_nhan_vien',
+        'ten',
+        'email',
+        'so_dien_thoai',
+        'gioi_tinh',
+        'ngay_sinh',
+        'dia_chi',
+        'phong_ban_id',
+        'chuc_vu_id',
+        'anh_dai_dien',
+        'trang_thai'
+    ];
+
+    protected $casts = [
+        'ngay_sinh' => 'date',
+        'trang_thai' => 'boolean'
+    ];
+
+    public function phongBan()
+    {
+        return $this->belongsTo(PhongBan::class, 'phong_ban_id');
+    }
+
+    public function chucVu()
+    {
+        return $this->belongsTo(ChucVu::class, 'chuc_vu_id');
+    }
+}
