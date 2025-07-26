@@ -1,6 +1,5 @@
 # remove-large-files.ps1
 $files = @(
-  "frontend.rar",
   "frontend/node_modules/.cache/default-development/5.pack",
   "frontend/node_modules/.cache/default-development/3.pack",
   "frontend/public/models/proto/ssd_mobilenet_face_optimized_v2.pbtxt",

@@ -14,7 +14,9 @@ import os
 
 def load_processed_data():
     """Đọc dữ liệu đã được xử lý"""
-    data_path = 'data/nhan_su_processed.csv'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(os.path.dirname(script_dir), 'data')
+    data_path = os.path.join(data_dir, 'nhan_su_processed.csv')
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Không tìm thấy file {data_path}. Hãy chạy process_data.py trước!")

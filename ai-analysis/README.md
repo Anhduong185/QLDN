@@ -25,16 +25,38 @@ ai-analysis/
 pip install -r requirements.txt
 ```
 
-### 2. Chạy Flask API
+### 2. Chạy toàn bộ hệ thống AI (Khuyến nghị)
+```bash
+python run_ai_analysis.py
+```
+
+Script này sẽ tự động:
+- Xử lý dữ liệu từ CSV files
+- Huấn luyện model AI
+- Khởi động Flask API
+
+### 3. Chạy từng bước riêng lẻ
+
+#### Xử lý dữ liệu
+```bash
+python src/process_data.py
+```
+
+#### Huấn luyện model
+```bash
+python src/train_model.py
+```
+
+#### Khởi động API
 ```bash
 python src/predict_api.py
 ```
 
 API sẽ chạy tại: `http://localhost:5000`
 
-### 3. Test API
+### 4. Test API
 ```bash
-python test_predict.py
+python test_api.py
 ```
 
 ## 🔗 Tích hợp với Laravel

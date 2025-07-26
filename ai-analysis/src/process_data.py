@@ -10,7 +10,10 @@ import os
 
 def load_data():
     """Đọc dữ liệu từ các file CSV"""
-    data_dir = 'data'
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to ai-analysis directory, then into data
+    data_dir = os.path.join(os.path.dirname(script_dir), 'data')
     
     # Đọc dữ liệu nhân viên
     df_nv = pd.read_csv(f'{data_dir}/nhan_vien.csv')
@@ -122,32 +125,34 @@ def create_features(df_combined):
 
 def main():
     """Hàm chính xử lý dữ liệu"""
-    print("🔄 Bắt đầu xử lý dữ liệu...")
+    print("Bắt đầu xử lý dữ liệu...")
     
     try:
         # Đọc dữ liệu
         df_nv, df_cc, df_np = load_data()
         
         # Xử lý từng loại dữ liệu
-        print("📊 Xử lý dữ liệu chấm công...")
+        print("Xử lý dữ liệu chấm công...")
         attendance_summary = process_attendance_data(df_cc)
         
-        print("📋 Xử lý dữ liệu nghỉ phép...")
+        print("Xử lý dữ liệu nghỉ phép...")
         leave_summary = process_leave_data(df_np)
         
-        print("👥 Xử lý dữ liệu nhân viên...")
+        print("Xử lý dữ liệu nhân viên...")
         df_nv_processed = process_employee_data(df_nv)
         
         # Kết hợp dữ liệu
-        print("🔗 Kết hợp dữ liệu...")
+        print("Kết hợp dữ liệu...")
         df_combined = combine_data(df_nv_processed, attendance_summary, leave_summary)
         
         # Tạo features
-        print("🎯 Tạo features cho model...")
+        print("Tạo features cho model...")
         df_features = create_features(df_combined)
         
         # Lưu kết quả
-        output_path = 'data/nhan_su_processed.csv'
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(os.path.dirname(script_dir), 'data')
+        output_path = os.path.join(data_dir, 'nhan_su_processed.csv')
         df_features.to_csv(output_path, index=True)
         
         print(f"✅ Đã lưu dữ liệu đã xử lý vào: {output_path}")
