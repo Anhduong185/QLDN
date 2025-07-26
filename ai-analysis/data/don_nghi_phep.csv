@@ -1,0 +1,21 @@
+id,nhan_vien_id,ngay_nghi,loai_nghi,thoi_gian_bat_dau,thoi_gian_ket_thuc,ly_do,trang_thai
+1,1,2024-01-15,ca_ngay,,,Nghỉ ốm,da_duyet
+2,2,2024-01-20,ca_ngay,,,Nghỉ phép,da_duyet
+3,2,2024-01-25,ca_ngay,,,Nghỉ ốm,da_duyet
+4,4,2024-01-10,ca_ngay,,,Nghỉ phép,da_duyet
+5,4,2024-01-18,ca_ngay,,,Nghỉ ốm,da_duyet
+6,4,2024-01-22,ca_ngay,,,Nghỉ phép,da_duyet
+7,6,2024-01-12,ca_ngay,,,Nghỉ ốm,da_duyet
+8,6,2024-01-28,ca_ngay,,,Nghỉ phép,da_duyet
+9,9,2024-01-08,ca_ngay,,,Nghỉ ốm,da_duyet
+10,9,2024-01-16,ca_ngay,,,Nghỉ phép,da_duyet
+11,12,2024-01-14,ca_ngay,,,Nghỉ ốm,da_duyet
+12,12,2024-01-24,ca_ngay,,,Nghỉ phép,da_duyet
+13,12,2024-01-30,ca_ngay,,,Nghỉ ốm,da_duyet
+14,15,2024-01-05,ca_ngay,,,Nghỉ phép,da_duyet
+15,15,2024-01-19,ca_ngay,,,Nghỉ ốm,da_duyet
+16,16,2024-01-11,ca_ngay,,,Nghỉ phép,da_duyet
+17,16,2024-01-26,ca_ngay,,,Nghỉ ốm,da_duyet
+18,18,2024-01-07,ca_ngay,,,Nghỉ phép,da_duyet
+19,18,2024-01-21,ca_ngay,,,Nghỉ ốm,da_duyet
+20,20,2024-01-13,ca_ngay,,,Nghỉ phép,da_duyet 
