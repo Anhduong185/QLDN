@@ -1,33 +1,16 @@
-# clean-models.ps1
-# Script xóa thư mục frontend/public/models khỏi Git hoàn toàn và thêm vào .gitignore
+# remove-large-files.ps1
+$files = @(
+  "frontend.rar",
+  "frontend/node_modules/.cache/default-development/5.pack",
+  "frontend/node_modules/.cache/default-development/3.pack",
+  "frontend/public/models/proto/ssd_mobilenet_face_optimized_v2.pbtxt",
+  "frontend/public/models/uncompressed/tiny_yolov2_model.weights"
+)
 
-# 1. Kiểm tra có git-filter-repo chưa
-if (-not (Get-Command "git-filter-repo" -ErrorAction SilentlyContinue)) {
-    Write-Host "Vui lòng cài git-filter-repo trước bằng: pip install git-filter-repo"
-    exit 1
+foreach ($file in $files) {
+  git filter-branch --force --index-filter "git rm --cached --ignore-unmatch $file" --prune-empty --tag-name-filter cat -- --all
 }
 
-# 2. Dừng nếu chưa commit thay đổi
-if ((git status --porcelain).Length -gt 0) {
-    Write-Host "Bạn có thay đổi chưa commit. Vui lòng commit hoặc stash lại trước khi chạy."
-    exit 1
-}
+Write-Host "✅ Đã xóa tất cả file lớn khỏi lịch sử Git."
 
-# 3. Chạy git-filter-repo để xóa hoàn toàn thư mục models
-git filter-repo --path frontend/public/models --invert-paths
-
-# 4. Thêm dòng vào .gitignore nếu chưa có
-$ignoreFile = "frontend/.gitignore"
-$ignoreLine = "public/models/"
-if (-not (Test-Path $ignoreFile)) {
-    New-Item -Path $ignoreFile -ItemType File -Force | Out-Null
-}
-if (-not (Select-String -Path $ignoreFile -Pattern $ignoreLine -Quiet)) {
-    Add-Content -Path $ignoreFile -Value $ignoreLine
-}
-
-# 5. Commit lại
-git add .
-git commit -m "Cleaned history and ignore models folder"
-
-Write-Host "Hoan tat! Git da sach se va da ignore thu muc models!"
+Write-Host "⚠️ Giờ hãy chạy: git push origin --force"
