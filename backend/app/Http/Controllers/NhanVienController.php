@@ -4,64 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\NhanVien;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class NhanVienController extends Controller
 {
-    public function index(): JsonResponse
+    // Lấy danh sách nhân viên
+    public function index(Request $request)
     {
-        $nhanViens = NhanVien::with(['phongBan', 'chucVu'])->get();
-        return response()->json($nhanViens);
+        $query = NhanVien::query();
+        if ($request->phong_ban_id) $query->where('phong_ban_id', $request->phong_ban_id);
+        return response()->json(['success' => true, 'data' => $query->orderBy('ten')->get()]);
     }
 
-    public function store(Request $request): JsonResponse
+    // Lấy chi tiết nhân viên
+    public function show($id)
     {
-        $validated = $request->validate([
-            'ma_nhan_vien' => 'required|unique:nhan_vien,ma_nhan_vien',
-            'ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nhan_vien,email',
-            'so_dien_thoai' => 'nullable|string',
-            'gioi_tinh' => 'nullable|string',
-            'ngay_sinh' => 'nullable|date',
-            'dia_chi' => 'nullable|string',
-            'phong_ban_id' => 'nullable|exists:phong_ban,id',
-            'chuc_vu_id' => 'nullable|exists:chuc_vu,id'
+        $nv = NhanVien::with(['phongBan', 'chucVu'])->findOrFail($id);
+        return response()->json(['success' => true, 'data' => $nv]);
+    }
+
+    // Dashboard tổng hợp nhân viên
+    public function dashboard(Request $request)
+    {
+        $tong_nv = NhanVien::count();
+        $dang_lam = NhanVien::where('trang_thai', 1)->count();
+        $da_nghi = NhanVien::where('trang_thai', 0)->count();
+            return response()->json([
+                'success' => true,
+            'data' => [
+                'tong_nv' => $tong_nv,
+                'dang_lam' => $dang_lam,
+                'da_nghi' => $da_nghi
+            ]
         ]);
-
-        $nhanVien = NhanVien::create($validated);
-        return response()->json($nhanVien->load(['phongBan', 'chucVu']), 201);
-    }
-
-    public function show($id): JsonResponse
-    {
-        $nhanVien = NhanVien::with(['phongBan', 'chucVu'])->findOrFail($id);
-        return response()->json($nhanVien);
-    }
-
-    public function update(Request $request, $id): JsonResponse
-    {
-        $nhanVien = NhanVien::findOrFail($id);
-        
-        $validated = $request->validate([
-            'ma_nhan_vien' => 'required|unique:nhan_vien,ma_nhan_vien,' . $id,
-            'ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nhan_vien,email,' . $id,
-            'so_dien_thoai' => 'nullable|string',
-            'gioi_tinh' => 'nullable|string',
-            'ngay_sinh' => 'nullable|date',
-            'dia_chi' => 'nullable|string',
-            'phong_ban_id' => 'nullable|exists:phong_ban,id',
-            'chuc_vu_id' => 'nullable|exists:chuc_vu,id'
-        ]);
-
-        $nhanVien->update($validated);
-        return response()->json($nhanVien->load(['phongBan', 'chucVu']));
-    }
-
-    public function destroy($id): JsonResponse
-    {
-        $nhanVien = NhanVien::findOrFail($id);
-        $nhanVien->delete();
-        return response()->json(['message' => 'Xóa nhân viên thành công']);
     }
 }

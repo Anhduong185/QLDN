@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\NhanVien;
 use Illuminate\Support\Facades\DB;
 
 class NhanVienSeeder extends Seeder
@@ -13,37 +12,23 @@ class NhanVienSeeder extends Seeder
         DB::connection('mysql_nhansu')->table('nhan_vien')->insert([
             [
                 'ma_nhan_vien' => 'NV001',
-                'ten' => 'Nguyễn Văn An',
-                'email' => 'an@company.com',
-                'so_dien_thoai' => '0901234567',
-                'gioi_tinh' => 'Nam',
-                'ngay_sinh' => '1990-05-15',
-                'dia_chi' => 'Hà Nội',
-                'trang_thai' => true,
+                'ten' => 'Nguyễn Văn A',
+                'email' => 'nva@company.com',
+                'so_dien_thoai' => '0123456789',
+                'phong_ban_id' => 1,
+                'chuc_vu_id' => 3,
+                'trang_thai' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'ma_nhan_vien' => 'NV002',
-                'ten' => 'Trần Thị Bình',
-                'email' => 'binh@company.com',
-                'so_dien_thoai' => '0912345678',
-                'gioi_tinh' => 'Nữ',
-                'ngay_sinh' => '1992-08-20',
-                'dia_chi' => 'TP.HCM',
-                'trang_thai' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'ma_nhan_vien' => 'NV003',
-                'ten' => 'Lê Văn Cường',
-                'email' => 'cuong@company.com',
-                'so_dien_thoai' => '0923456789',
-                'gioi_tinh' => 'Nam',
-                'ngay_sinh' => '1988-12-10',
-                'dia_chi' => 'Đà Nẵng',
-                'trang_thai' => true,
+                'ten' => 'Trần Thị B',
+                'email' => 'ttb@company.com',
+                'so_dien_thoai' => '0987654321',
+                'phong_ban_id' => 2,
+                'chuc_vu_id' => 3,
+                'trang_thai' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]

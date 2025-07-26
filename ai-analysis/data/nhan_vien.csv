@@ -1,0 +1,21 @@
+id,ma_nhan_vien,ten,email,so_dien_thoai,gioi_tinh,ngay_sinh,dia_chi,phong_ban_id,chuc_vu_id,anh_dai_dien,trang_thai
+1,NV001,Nguyễn Văn An,an.nguyen@company.com,0123456789,Nam,1990-05-15,Hà Nội,1,1,avatar1.jpg,1
+2,NV002,Trần Thị Bình,binh.tran@company.com,0123456790,Nữ,1988-08-20,Hồ Chí Minh,1,2,avatar2.jpg,1
+3,NV003,Lê Văn Cường,cuong.le@company.com,0123456791,Nam,1992-03-10,Đà Nẵng,2,1,avatar3.jpg,1
+4,NV004,Phạm Thị Dung,dung.pham@company.com,0123456792,Nữ,1995-12-25,Hải Phòng,2,2,avatar4.jpg,1
+5,NV005,Hoàng Văn Em,em.hoang@company.com,0123456793,Nam,1987-07-08,Cần Thơ,3,1,avatar5.jpg,1
+6,NV006,Vũ Thị Phương,phuong.vu@company.com,0123456794,Nữ,1993-09-30,Quảng Ninh,1,3,avatar6.jpg,1
+7,NV007,Đỗ Văn Giang,giang.do@company.com,0123456795,Nam,1991-11-12,Thái Nguyên,2,3,avatar7.jpg,1
+8,NV008,Ngô Thị Hoa,hoa.ngo@company.com,0123456796,Nữ,1989-04-18,Bình Dương,3,2,avatar8.jpg,1
+9,NV009,Trịnh Văn In,in.trinh@company.com,0123456797,Nam,1994-06-22,Đồng Nai,1,1,avatar9.jpg,1
+10,NV010,Lý Thị Kim,kim.ly@company.com,0123456798,Nữ,1990-01-14,Long An,2,2,avatar10.jpg,1
+11,NV011,Bùi Văn Long,long.bui@company.com,0123456799,Nam,1986-10-05,Tiền Giang,3,1,avatar11.jpg,1
+12,NV012,Đinh Thị Mai,mai.dinh@company.com,0123456800,Nữ,1992-02-28,An Giang,1,3,avatar12.jpg,1
+13,NV013,Hồ Văn Nam,nam.ho@company.com,0123456801,Nam,1988-12-03,Kiên Giang,2,1,avatar13.jpg,1
+14,NV014,Phan Thị Oanh,oanh.phan@company.com,0123456802,Nữ,1995-07-16,Bạc Liêu,3,2,avatar14.jpg,1
+15,NV015,Võ Văn Phúc,phuc.vo@company.com,0123456803,Nam,1991-03-09,Cà Mau,1,1,avatar15.jpg,1
+16,NV016,Đặng Thị Quỳnh,quynh.dang@company.com,0123456804,Nữ,1987-11-21,Sóc Trăng,2,3,avatar16.jpg,1
+17,NV017,Huỳnh Văn Rạng,rang.huynh@company.com,0123456805,Nam,1993-05-07,Trà Vinh,3,1,avatar17.jpg,1
+18,NV018,Trương Thị Sinh,sinh.truong@company.com,0123456806,Nữ,1989-08-13,Vĩnh Long,1,2,avatar18.jpg,1
+19,NV019,Nguyễn Văn Tân,tan.nguyen@company.com,0123456807,Nam,1994-01-26,Bến Tre,2,1,avatar19.jpg,1
+20,NV020,Lê Thị Uyên,uyen.le@company.com,0123456808,Nữ,1990-09-19,Vũng Tàu,3,3,avatar20.jpg,1 
