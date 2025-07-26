@@ -6,13 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::connection('mysql_nhansu')->create('nhan_vien', function (Blueprint $table) {
-            $table->bigIncrements('id');
+            $table->id();
             $table->string('ma_nhan_vien')->unique();
             $table->string('ten');
             $table->string('email')->unique();
@@ -31,11 +28,11 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('nhan_vien');
+        Schema::connection('mysql_nhansu')->table('nhan_vien', function (Blueprint $table) {
+            $table->dropForeign(['phong_ban_id']);
+            $table->dropForeign(['chuc_vu_id']);
+        });
     }
 };

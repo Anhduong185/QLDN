@@ -13,17 +13,11 @@ class NhanVien extends Model
     protected $table = 'nhan_vien';
 
     protected $fillable = [
-        'ma_nhan_vien',
-        'ten',
-        'email',
-        'so_dien_thoai',
-        'gioi_tinh',
-        'ngay_sinh',
-        'dia_chi',
-        'phong_ban_id',
-        'chuc_vu_id',
-        'anh_dai_dien',
-        'trang_thai'
+        'ma_nhan_vien', 'ten', 'email', 'so_dien_thoai',
+        'gioi_tinh', 'ngay_sinh', 'dia_chi', 'phong_ban_id',
+        'chuc_vu_id', 'anh_dai_dien', 'trang_thai', 'ngay_vao_lam',
+        'luong_co_ban', 'cmnd_cccd', 'noi_sinh', 'dan_toc',
+        'ton_giao', 'tinh_trang_hon_nhan', 'ca_lam_viec_id'
     ];
 
     protected $casts = [
@@ -39,5 +33,25 @@ class NhanVien extends Model
     public function chucVu()
     {
         return $this->belongsTo(ChucVu::class, 'chuc_vu_id');
+    }
+
+    public function chamCongs()
+    {
+        return $this->hasMany(ChamCong::class, 'nhan_vien_id');
+    }
+
+    public function faceData()
+    {
+        return $this->hasOne(FaceData::class, 'nhan_vien_id');
+    }
+
+    public function taiKhoan()
+    {
+        return $this->hasOne(TaiKhoan::class, 'nhan_vien_id');
+    }
+
+    public function caLamViec()
+    {
+        return $this->belongsTo(CaLamViec::class, 'ca_lam_viec_id');
     }
 }
