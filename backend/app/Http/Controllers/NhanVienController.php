@@ -101,6 +101,11 @@ class NhanVienController extends Controller
                 'chuc_vu_id' => 'required|exists:chuc_vu,id',
                 'ngay_vao_lam' => 'required|date',
                 'luong_co_ban' => 'required|numeric|min:0',
+                'cmnd_cccd' => 'nullable|string|max:20',
+                'noi_sinh' => 'nullable|string|max:255',
+                'dan_toc' => 'nullable|string|max:50',
+                'ton_giao' => 'nullable|string|max:100',
+                'tinh_trang_hon_nhan' => 'nullable|string|max:50',
                 'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
             ], [
                 'ma_nhan_vien.required' => 'Mã nhân viên là bắt buộc',
@@ -179,6 +184,11 @@ class NhanVienController extends Controller
                 'chuc_vu_id' => 'required|exists:chuc_vu,id',
                 'ngay_vao_lam' => 'required|date',
                 'luong_co_ban' => 'required|numeric|min:0',
+                'cmnd_cccd' => 'nullable|string|max:20',
+                'noi_sinh' => 'nullable|string|max:255',
+                'dan_toc' => 'nullable|string|max:50',
+                'ton_giao' => 'nullable|string|max:100',
+                'tinh_trang_hon_nhan' => 'nullable|string|max:50',
                 'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
             ], [
                 'ma_nhan_vien.required' => 'Mã nhân viên là bắt buộc',

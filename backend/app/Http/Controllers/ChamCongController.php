@@ -187,6 +187,98 @@ class ChamCongController extends Controller
         }
     }
 
+    // Check-out riêng biệt (nếu cần)
+    public function checkOut(Request $request)
+    {
+        $inputDescriptor = $request->face_descriptor;
+        $nhanVien = $this->findNhanVienByFace($inputDescriptor);
+        if (!$nhanVien) {
+            return response()->json(['success' => false, 'message' => 'Không nhận diện được khuôn mặt'], 400);
+        }
+
+        $ca = $nhanVien->caLamViec ?? CaLamViec::first();
+        if (!$ca) {
+            return response()->json(['success' => false, 'message' => 'Không xác định được ca làm việc'], 400);
+        }
+
+        $today = now()->toDateString();
+        $now = now();
+
+        // Ghi AccessLog
+        AccessLog::create([
+            'nhan_vien_id' => $nhanVien->id,
+            'thoi_gian' => $now,
+            'loai_su_kien' => 'ra',
+            'vi_tri' => $request->input('vi_tri'),
+            'ghi_chu' => $request->input('device_info')
+        ]);
+
+        // Cập nhật chấm công
+        $chamCong = ChamCong::where('nhan_vien_id', $nhanVien->id)
+            ->where('ngay', $today)
+            ->where('ca_lam_viec_id', $ca->id)
+            ->first();
+
+        if ($chamCong) {
+            $chamCong->update([
+                'gio_ra' => $now->format('H:i:s'),
+                'trang_thai' => $this->tinhTrangThaiRa($nhanVien, $now, $ca),
+                'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
+            ]);
+        }
+
+        return response()->json(['success' => true, 'data' => $chamCong, 'nhan_vien' => $nhanVien]);
+    }
+
+    // Lấy lịch sử chấm công của nhân viên
+    public function getAttendanceHistory($employeeId)
+    {
+        $chamCongs = ChamCong::where('nhan_vien_id', $employeeId)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('ngay', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy tất cả chấm công
+    public function getAllAttendance(Request $request)
+    {
+        $query = ChamCong::with(['nhanVien', 'caLamViec']);
+        
+        if ($request->from) $query->where('ngay', '>=', $request->from);
+        if ($request->to) $query->where('ngay', '<=', $request->to);
+        if ($request->nhan_vien_id) $query->where('nhan_vien_id', $request->nhan_vien_id);
+        
+        $chamCongs = $query->orderBy('ngay', 'desc')->get();
+        
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay
+    public function getTodayAttendance()
+    {
+        $today = now()->toDateString();
+        $chamCongs = ChamCong::where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('gio_vao', 'asc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay của nhân viên cụ thể
+    public function getEmployeeTodayAttendance($employeeId)
+    {
+        $today = now()->toDateString();
+        $chamCong = ChamCong::where('nhan_vien_id', $employeeId)
+            ->where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->first();
+
+        return response()->json(['success' => true, 'data' => $chamCong]);
+    }
+
     // ====== Các hàm phụ trợ ======
     protected function findNhanVienByFace($inputDescriptor)
     {
