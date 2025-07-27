@@ -32,19 +32,6 @@ class ChamCongController extends Controller
         $today = now()->toDateString();
         $now = now();
 
-        // Kiểm tra đơn nghỉ phép đã duyệt
-        $donNghiPhep = DonNghiPhep::where('nhan_vien_id', $nhanVien->id)
-            ->where('ngay_nghi', $today)
-            ->where('trang_thai', 'da_duyet')
-            ->first();
-
-        if ($donNghiPhep) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Nhân viên đã có đơn nghỉ phép được duyệt cho ngày hôm nay. Không thể chấm công!'
-            ], 400);
-        }
-
         // 1. Ghi AccessLog mỗi lần quét, so le vào/ra
         $lastLog = AccessLog::where('nhan_vien_id', $nhanVien->id)
             ->orderBy('thoi_gian', 'desc')
@@ -56,29 +43,17 @@ class ChamCongController extends Controller
             $eventType = 'ra';
         }
 
-        // Chỉ ghi log 'vao' nếu chưa có log 'vao' trong ngày/ca
-        $today = now()->toDateString();
-        $hasVaoLog = AccessLog::where('nhan_vien_id', $nhanVien->id)
-            ->whereDate('thoi_gian', $today)
-            ->where('loai_su_kien', 'vao')
-            ->exists();
-
         if (
-            $eventType === 'vao' && !$hasVaoLog ||
-            $eventType === 'ra'
+            (!$lastLog || $lastLog->loai_su_kien !== $eventType) &&
+            (!$lastLog || $now->diffInSeconds(Carbon::parse($lastLog->thoi_gian)) > 2)
         ) {
-            if (
-                (!$lastLog || $lastLog->loai_su_kien !== $eventType) &&
-                (!$lastLog || $now->diffInSeconds(Carbon::parse($lastLog->thoi_gian)) > 2)
-            ) {
-                AccessLog::create([
-                    'nhan_vien_id' => $nhanVien->id,
-                    'thoi_gian' => $now,
-                    'loai_su_kien' => $eventType,
-                    'vi_tri' => $request->input('vi_tri'),
-                    'ghi_chu' => $request->input('device_info')
-                ]);
-            }
+            AccessLog::create([
+                'nhan_vien_id' => $nhanVien->id,
+                'thoi_gian' => $now,
+                'loai_su_kien' => $eventType,
+                'vi_tri' => $request->input('vi_tri'),
+                'ghi_chu' => $request->input('device_info')
+            ]);
         }
 
         // 2. Xử lý bảng chấm công
@@ -89,29 +64,19 @@ class ChamCongController extends Controller
 
         if (!$chamCong && $eventType === 'vao') {
             // Lần đầu tiên: ghi giờ vào
-            $gioVao = Carbon::parse($now);
-            $gioBatDau = Carbon::parse($ca->gio_bat_dau);
-            $phutTre = max(0, $gioVao->diffInMinutes($gioBatDau, false));
-            
             $chamCong = ChamCong::create([
                 'nhan_vien_id' => $nhanVien->id,
                 'ca_lam_viec_id' => $ca->id,
                 'ngay' => $today,
                 'gio_vao' => $now->format('H:i:s'),
                 'trang_thai' => $this->tinhTrangThaiVao($nhanVien, $now, $ca),
-                'phut_tre' => $phutTre,
                 'ghi_chu' => 'Chấm công vào bằng khuôn mặt'
             ]);
         } else if ($chamCong && $eventType === 'ra') {
             // Mỗi lần ra đều cập nhật lại giờ ra (lấy lần cuối cùng)
-            $gioRa = Carbon::parse($now);
-            $gioKetThuc = Carbon::parse($ca->gio_ket_thuc);
-            $phutSom = max(0, $gioKetThuc->diffInMinutes($gioRa, false));
-            
             $chamCong->update([
                 'gio_ra' => $now->format('H:i:s'),
-                // Không cập nhật trạng thái khi ra!
-                'phut_som' => $phutSom,
+                'trang_thai' => $this->tinhTrangThaiRa($nhanVien, $now, $ca),
                 'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
             ]);
         }
@@ -222,6 +187,98 @@ class ChamCongController extends Controller
         }
     }
 
+    // Check-out riêng biệt (nếu cần)
+    public function checkOut(Request $request)
+    {
+        $inputDescriptor = $request->face_descriptor;
+        $nhanVien = $this->findNhanVienByFace($inputDescriptor);
+        if (!$nhanVien) {
+            return response()->json(['success' => false, 'message' => 'Không nhận diện được khuôn mặt'], 400);
+        }
+
+        $ca = $nhanVien->caLamViec ?? CaLamViec::first();
+        if (!$ca) {
+            return response()->json(['success' => false, 'message' => 'Không xác định được ca làm việc'], 400);
+        }
+
+        $today = now()->toDateString();
+        $now = now();
+
+        // Ghi AccessLog
+        AccessLog::create([
+            'nhan_vien_id' => $nhanVien->id,
+            'thoi_gian' => $now,
+            'loai_su_kien' => 'ra',
+            'vi_tri' => $request->input('vi_tri'),
+            'ghi_chu' => $request->input('device_info')
+        ]);
+
+        // Cập nhật chấm công
+        $chamCong = ChamCong::where('nhan_vien_id', $nhanVien->id)
+            ->where('ngay', $today)
+            ->where('ca_lam_viec_id', $ca->id)
+            ->first();
+
+        if ($chamCong) {
+            $chamCong->update([
+                'gio_ra' => $now->format('H:i:s'),
+                'trang_thai' => $this->tinhTrangThaiRa($nhanVien, $now, $ca),
+                'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
+            ]);
+        }
+
+        return response()->json(['success' => true, 'data' => $chamCong, 'nhan_vien' => $nhanVien]);
+    }
+
+    // Lấy lịch sử chấm công của nhân viên
+    public function getAttendanceHistory($employeeId)
+    {
+        $chamCongs = ChamCong::where('nhan_vien_id', $employeeId)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('ngay', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy tất cả chấm công
+    public function getAllAttendance(Request $request)
+    {
+        $query = ChamCong::with(['nhanVien', 'caLamViec']);
+        
+        if ($request->from) $query->where('ngay', '>=', $request->from);
+        if ($request->to) $query->where('ngay', '<=', $request->to);
+        if ($request->nhan_vien_id) $query->where('nhan_vien_id', $request->nhan_vien_id);
+        
+        $chamCongs = $query->orderBy('ngay', 'desc')->get();
+        
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay
+    public function getTodayAttendance()
+    {
+        $today = now()->toDateString();
+        $chamCongs = ChamCong::where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('gio_vao', 'asc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay của nhân viên cụ thể
+    public function getEmployeeTodayAttendance($employeeId)
+    {
+        $today = now()->toDateString();
+        $chamCong = ChamCong::where('nhan_vien_id', $employeeId)
+            ->where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->first();
+
+        return response()->json(['success' => true, 'data' => $chamCong]);
+    }
+
     // ====== Các hàm phụ trợ ======
     protected function findNhanVienByFace($inputDescriptor)
     {
@@ -265,20 +322,10 @@ class ChamCongController extends Controller
     {
         $gioVao = Carbon::parse($now);
         $gioBatDau = Carbon::parse($ca->gio_bat_dau);
-        $tre = $gioBatDau->diffInMinutes($gioVao, false);
-        
-        // Nếu $tre <= 0: đến sớm hoặc đúng giờ
-        // Nếu $tre > 0: đến muộn
-        if ($tre <= 0) {
-            return 'co_mat'; // Đến sớm hoặc đúng giờ
-        } else {
-            // Đến muộn
-            if ($tre <= $ca->phut_tre_cho_phep) {
-                return 'tre'; // Muộn trong giới hạn cho phép
-            } else {
-                return 'tre'; // Muộn quá giới hạn
-            }
-        }
+        $tre = $gioVao->diffInMinutes($gioBatDau, false);
+        if ($tre <= 0) return 'co_mat'; // Đến sớm hoặc đúng giờ
+        if ($tre > 0 && $tre <= $ca->phut_tre_cho_phep) return 'tre'; // Đi muộn trong giới hạn cho phép
+        return 'tre'; // Đi muộn quá giới hạn
     }
 
     protected function tinhTrangThaiRa($nhanVien, $now, $ca)
@@ -286,17 +333,7 @@ class ChamCongController extends Controller
         $gioRa = Carbon::parse($now);
         $gioKetThuc = Carbon::parse($ca->gio_ket_thuc);
         $som = $gioRa->diffInMinutes($gioKetThuc, false);
-        
-        // Nếu $som < 0: về sớm
-        // Nếu $som >= 0: về đúng hoặc muộn
-        if ($som < 0) {
-            if (abs($som) <= $ca->phut_som_cho_phep) {
-                return 'som'; // Về sớm trong giới hạn cho phép
-            } else {
-                return 'som'; // Về sớm quá giới hạn
-            }
-        } else {
-            return 'co_mat'; // Về đúng hoặc muộn
-        }
+        if ($som < 0 && abs($som) <= $ca->phut_som_cho_phep) return 'som'; // Về sớm trong giới hạn cho phép
+        return 'co_mat'; // Về đúng hoặc muộn
     }
 }

@@ -14,10 +14,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('nhan-vien')->group(function () {
     Route::get('/', [NhanVienController::class, 'index']);
     Route::post('/', [NhanVienController::class, 'store']);
+    Route::get('/dashboard', [NhanVienController::class, 'dashboard']);
+    Route::get('/form-data', [NhanVienController::class, 'getFormData']);
     Route::get('/{id}', [NhanVienController::class, 'show']);
     Route::put('/{id}', [NhanVienController::class, 'update']);
     Route::delete('/{id}', [NhanVienController::class, 'destroy']);
-    Route::get('/dashboard', [NhanVienController::class, 'dashboard']);
 });
 
 // API routes cho chấm công
@@ -63,7 +64,6 @@ Route::prefix('statistics')->group(function () {
     Route::get('/leave-stats', [App\Http\Controllers\StatisticsController::class, 'getLeaveStats']);
     Route::get('/advanced-ai-stats', [App\Http\Controllers\StatisticsController::class, 'getAdvancedAIStats']);
 });
-
 
 
 

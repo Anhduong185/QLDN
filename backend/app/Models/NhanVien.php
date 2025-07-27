@@ -15,7 +15,9 @@ class NhanVien extends Model
     protected $fillable = [
         'ma_nhan_vien', 'ten', 'email', 'so_dien_thoai',
         'gioi_tinh', 'ngay_sinh', 'dia_chi', 'phong_ban_id',
-        'chuc_vu_id', 'anh_dai_dien', 'trang_thai'
+        'chuc_vu_id', 'anh_dai_dien', 'trang_thai', 'ngay_vao_lam',
+        'luong_co_ban', 'cmnd_cccd', 'noi_sinh', 'dan_toc',
+        'ton_giao', 'tinh_trang_hon_nhan', 'ca_lam_viec_id'
     ];
 
     protected $casts = [
@@ -51,5 +53,10 @@ class NhanVien extends Model
     public function caLamViec()
     {
         return $this->belongsTo(CaLamViec::class, 'ca_lam_viec_id');
+    }
+
+    public function duLieuKhuonMat()
+    {
+        return $this->hasOne(DuLieuKhuonMat::class, 'nhan_vien_id');
     }
 }
