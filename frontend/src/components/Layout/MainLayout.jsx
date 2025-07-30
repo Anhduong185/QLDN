@@ -44,15 +44,15 @@ const MainLayout = () => {
     // Map header menu keys to component keys
     const keyMapping = {
       'check-in': 'checkin',
-      'lich-su-cham-cong': 'accesslog',
+      'access-logs': 'accesslog',
       'dashboard': 'dashboard',
-      'dang-ky-khuon-mat': 'registerface',
+      'register-face': 'registerface',
       'nghi-phep': 'nghiphep',
       'export': 'export',
       'danh-sach-nhan-vien': 'nhanvien',
       'ai-analysis': 'ai-dashboard',
       'thong-ke': 'statistics',
-      'excel-import': 'excel-import', // Thêm mapping cho Excel Import
+      'excel-import': 'excel-import',
       // Default mappings
       'cham-cong': 'checkin',
       'nhan-su': 'nhanvien',

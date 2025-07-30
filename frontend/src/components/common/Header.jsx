@@ -38,10 +38,10 @@ const mainMenuItems = [
     label: "Chấm công",
     children: [
       { key: "check-in", label: "Chấm công" },
-      { key: "lich-su-cham-cong", label: "Lịch sử chấm công" },
+      { key: "dashboard", label: "Dashboard" },
+      { key: "access-logs", label: "Lịch sử ra vào" },
       { key: "nghi-phep", label: "Nghỉ phép" },
-      { key: "ca-lam-viec", label: "Ca làm việc" },
-      { key: "dang-ky-khuon-mat", label: "Đăng ký khuôn mặt" },
+      { key: "register-face", label: "Đăng ký khuôn mặt" },
     ],
   },
   {
