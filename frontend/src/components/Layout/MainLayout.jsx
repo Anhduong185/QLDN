@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography } from 'antd';
-import {
-  UserOutlined, ClockCircleOutlined, TableOutlined, FileExcelOutlined, FormOutlined, RobotOutlined, BarChartOutlined
-} from '@ant-design/icons';
+import { Layout, Typography } from 'antd';
 import CheckIn from '../ChamCong/CheckIn';
 import AccessLog from '../ChamCong/AccessLog';
 import Dashboard from '../ChamCong/Dashboard';
@@ -15,38 +12,51 @@ import StatisticsDashboard from '../Statistics/StatisticsDashboard';
 import NhanVienList from '../NhanSu/NhanVienList';
 import AppHeader from '../common/Header';
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 const { Title } = Typography;
 
 const menuItems = [
-  { key: 'checkin', icon: <ClockCircleOutlined />, label: 'Chấm công', component: <CheckIn /> },
-  { key: 'accesslog', icon: <UserOutlined />, label: 'Lịch sử ra/vào', component: <AccessLog /> },
-  { key: 'dashboard', icon: <TableOutlined />, label: 'Dashboard', component: <Dashboard /> },
-  { key: 'registerface', icon: <UserOutlined />, label: 'Đăng ký khuôn mặt', component: <RegisterFace /> },
-  { key: 'nghiphep', icon: <FormOutlined />, label: 'Nghỉ phép', component: (
+  { key: 'checkin', label: 'Chấm công', component: <CheckIn /> },
+  { key: 'accesslog', label: 'Lịch sử ra/vào', component: <AccessLog /> },
+  { key: 'dashboard', label: 'Dashboard', component: <Dashboard /> },
+  { key: 'registerface', label: 'Đăng ký khuôn mặt', component: <RegisterFace /> },
+  { key: 'nghiphep', label: 'Nghỉ phép', component: (
       <div>
         <DonNghiPhepForm />
         <DonNghiPhepList />
       </div>
     )
   },
-  { key: 'export', icon: <FileExcelOutlined />, label: 'Xuất Excel', component: <ExportExcel /> },
-  { key: 'nhanvien', icon: <UserOutlined />, label: 'Quản lý nhân viên', component: <NhanVienList /> },
-  { key: 'ai-dashboard', icon: <RobotOutlined />, label: 'AI Phân Tích', component: <AiDashboard /> },
-  { key: 'statistics', icon: <BarChartOutlined />, label: 'Thống Kê', component: <StatisticsDashboard /> }
+  { key: 'export', label: 'Xuất Excel', component: <ExportExcel /> },
+  { key: 'nhanvien', label: 'Quản lý nhân viên', component: <NhanVienList /> },
+  { key: 'ai-dashboard', label: 'AI Phân Tích', component: <AiDashboard /> },
+  { key: 'statistics', label: 'Thống Kê', component: <StatisticsDashboard /> }
 ];
 
 const MainLayout = () => {
   const [selectedKey, setSelectedKey] = useState('checkin');
-  const [collapsed, setCollapsed] = useState(false);
   const selected = menuItems.find(item => item.key === selectedKey);
 
   const handleMenuSelect = (key) => {
-    setSelectedKey(key);
-  };
-
-  const handleCollapse = () => {
-    setCollapsed(!collapsed);
+    // Map header menu keys to component keys
+    const keyMapping = {
+      'check-in': 'checkin',
+      'lich-su-cham-cong': 'accesslog',
+      'dashboard': 'dashboard',
+      'dang-ky-khuon-mat': 'registerface',
+      'nghi-phep': 'nghiphep',
+      'export': 'export',
+      'danh-sach-nhan-vien': 'nhanvien',
+      'ai-analysis': 'ai-dashboard',
+      'thong-ke': 'statistics',
+      // Default mappings
+      'cham-cong': 'checkin',
+      'nhan-su': 'nhanvien',
+      'bao-cao': 'dashboard',
+    };
+    
+    const mappedKey = keyMapping[key] || key;
+    setSelectedKey(mappedKey);
   };
 
   return (
@@ -54,54 +64,17 @@ const MainLayout = () => {
       {/* Header */}
       <AppHeader onMenuSelect={handleMenuSelect} />
       
-      <Layout>
-        {/* Sidebar */}
-        <Sider 
-          breakpoint="lg" 
-          collapsedWidth="0" 
-          style={{ background: '#001529' }}
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-        >
-          <div style={{
-            height: 64, 
-            margin: 16, 
-            background: 'rgba(255,255,255,0.1)', 
-            borderRadius: 8,
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            color: '#fff', 
-            fontWeight: 700, 
-            fontSize: 20
-          }}>
-            <span role="img" aria-label="logo">🕑</span> Chấm Công AI
-          </div>
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            onClick={e => setSelectedKey(e.key)}
-            items={menuItems.map(item => ({
-              key: item.key,
-              icon: item.icon,
-              label: item.label
-            }))}
-          />
-        </Sider>
-        
-        {/* Main Content */}
-        <Content style={{ 
-          margin: '24px', 
-          padding: '24px', 
-          background: '#fff', 
-          borderRadius: '8px',
-          minHeight: 'calc(100vh - 112px)',
-          overflow: 'auto'
-        }}>
-          {selected?.component}
-        </Content>
-      </Layout>
+      {/* Main Content */}
+      <Content style={{ 
+        margin: '24px', 
+        padding: '24px', 
+        background: '#fff', 
+        borderRadius: '8px',
+        minHeight: 'calc(100vh - 88px)',
+        overflow: 'auto'
+      }}>
+        {selected?.component}
+      </Content>
     </Layout>
   );
 };

@@ -10,6 +10,9 @@ import {
   SettingOutlined,
   BellOutlined,
   GlobalOutlined,
+  FileExcelOutlined,
+  RobotOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
 
 const { Header } = Layout;
@@ -61,6 +64,16 @@ const mainMenuItems = [
       { key: "bao-cao-cham-cong", label: "Báo cáo chấm công" },
       { key: "bao-cao-luong", label: "Báo cáo lương" },
       { key: "thong-ke", label: "Thống kê" },
+      { key: "export", label: "Xuất Excel" },
+    ],
+  },
+  {
+    key: "ai-analysis",
+    icon: <RobotOutlined />,
+    label: "AI Phân Tích",
+    children: [
+      { key: "ai-dashboard", label: "Dashboard AI" },
+      { key: "predictions", label: "Dự đoán" },
     ],
   },
   {
@@ -100,7 +113,7 @@ const notificationMenu = (
 );
 
 const AppHeader = ({ onMenuSelect }) => {
-  const [selectedKeys, setSelectedKeys] = useState(["nhan-su"]);
+  const [selectedKeys, setSelectedKeys] = useState(["cham-cong"]);
 
   const handleMenuClick = ({ key }) => {
     setSelectedKeys([key]);
