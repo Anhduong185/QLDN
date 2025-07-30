@@ -45,6 +45,25 @@ Route::prefix('don-nghi-phep')->group(function () {
     Route::get('/', [DonNghiPhepController::class, 'index']);
 });
 
+// AI Analysis Routes
+Route::prefix('ai-analysis')->group(function () {
+    Route::post('/predict-attrition', [App\Http\Controllers\AiAnalysisController::class, 'predictAttrition']);
+    Route::get('/predict-batch-attrition', [App\Http\Controllers\AiAnalysisController::class, 'predictBatchAttrition']);
+    Route::get('/stats', [App\Http\Controllers\AiAnalysisController::class, 'getAiStats']);
+    
+    // Real-time AI features
+    Route::get('/collect-data', [App\Http\Controllers\AiAnalysisController::class, 'collectRealTimeData']);
+    Route::post('/update-model', [App\Http\Controllers\AiAnalysisController::class, 'updateAiModel']);
+    Route::get('/analyze-trends', [App\Http\Controllers\AiAnalysisController::class, 'analyzeTrends']);
+});
+
+// Statistics Routes
+Route::prefix('statistics')->group(function () {
+    Route::get('/basic-stats', [App\Http\Controllers\StatisticsController::class, 'getBasicStats']);
+    Route::get('/attendance-stats', [App\Http\Controllers\StatisticsController::class, 'getAttendanceStats']);
+    Route::get('/leave-stats', [App\Http\Controllers\StatisticsController::class, 'getLeaveStats']);
+    Route::get('/advanced-ai-stats', [App\Http\Controllers\StatisticsController::class, 'getAdvancedAIStats']);
+});
 
 
 

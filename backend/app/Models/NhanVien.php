@@ -54,4 +54,9 @@ class NhanVien extends Model
     {
         return $this->belongsTo(CaLamViec::class, 'ca_lam_viec_id');
     }
+
+    public function duLieuKhuonMat()
+    {
+        return $this->hasOne(DuLieuKhuonMat::class, 'nhan_vien_id');
+    }
 }

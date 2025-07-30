@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::connection('mysql_nhansu')->table('nhan_vien', function (Blueprint $table) {
+        Schema::table('nhan_vien', function (Blueprint $table) {
             $table->date('ngay_vao_lam')->nullable()->after('dia_chi');
             $table->decimal('luong_co_ban', 12, 2)->nullable()->after('ngay_vao_lam');
             $table->string('cmnd_cccd')->nullable()->after('luong_co_ban');
@@ -27,7 +27,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('mysql_nhansu')->table('nhan_vien', function (Blueprint $table) {
+        Schema::table('nhan_vien', function (Blueprint $table) {
             $table->dropColumn([
                 'ngay_vao_lam',
                 'luong_co_ban',
