@@ -10,6 +10,7 @@ import {
   ReloadOutlined,
   EyeOutlined,
   UserOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import {
   Table,
@@ -22,6 +23,8 @@ import {
   message,
   Tag,
   Tooltip,
+  Descriptions,
+  Avatar,
 } from 'antd';
 
 const { Search } = Input;
@@ -31,7 +34,9 @@ const NhanVienList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -63,22 +68,39 @@ const NhanVienList = () => {
     setShowForm(true);
   };
 
+  const handleViewDetail = (employee) => {
+    setSelectedEmployee(employee);
+    setShowDetail(true);
+  };
+
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa nhân viên này?')) {
-      try {
-        await nhanVienService.delete(id);
-        fetchNhanViens();
-        message.success('Xóa nhân viên thành công!');
-      } catch (error) {
-        message.error('Có lỗi xảy ra khi xóa nhân viên');
-        console.error('Error deleting employee:', error);
-      }
-    }
+    Modal.confirm({
+      title: 'Xác nhận xóa',
+      content: 'Bạn có chắc muốn xóa nhân viên này?',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await nhanVienService.delete(id);
+          fetchNhanViens();
+          message.success('Xóa nhân viên thành công!');
+        } catch (error) {
+          message.error('Có lỗi xảy ra khi xóa nhân viên');
+          console.error('Error deleting employee:', error);
+        }
+      },
+    });
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingEmployee(null);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetail(false);
+    setSelectedEmployee(null);
   };
 
   const getStatusTag = (status) => {
@@ -149,7 +171,7 @@ const NhanVienList = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 150,
+      width: 180,
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Xem chi tiết">
@@ -157,7 +179,7 @@ const NhanVienList = () => {
               type="text"
               icon={<EyeOutlined />}
               size="small"
-              onClick={() => handleEdit(record)}
+              onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
@@ -202,7 +224,7 @@ const NhanVienList = () => {
         }
       >
         {/* Bộ lọc và tìm kiếm */}
-        <div style={{ marginBottom: '16px', display: 'flex', gap: '16px' }}>
+        <div style={{ marginBottom: '16px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <Search
             placeholder="Tìm kiếm theo tên, mã NV, email..."
             value={searchText}
@@ -259,6 +281,79 @@ const NhanVienList = () => {
           onSuccess={handleAddSuccess}
           onCancel={handleCloseForm}
         />
+      </Modal>
+
+      {/* Modal chi tiết nhân viên */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <InfoCircleOutlined style={{ color: '#1890ff' }} />
+            Chi tiết nhân viên
+          </div>
+        }
+        open={showDetail}
+        onCancel={handleCloseDetail}
+        footer={[
+          <Button key="edit" type="primary" onClick={() => {
+            handleCloseDetail();
+            handleEdit(selectedEmployee);
+          }}>
+            Chỉnh sửa
+          </Button>,
+          <Button key="close" onClick={handleCloseDetail}>
+            Đóng
+          </Button>
+        ]}
+        width={700}
+        destroyOnClose
+      >
+        {selectedEmployee && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <Avatar size={80} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+              <h2 style={{ marginTop: '16px', marginBottom: '8px' }}>{selectedEmployee.ten}</h2>
+              <Tag color={selectedEmployee.trang_thai ? 'green' : 'red'}>
+                {selectedEmployee.trang_thai ? 'Đang làm việc' : 'Đã nghỉ việc'}
+              </Tag>
+            </div>
+            
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Mã nhân viên" span={2}>
+                {selectedEmployee.ma_nhan_vien}
+              </Descriptions.Item>
+              <Descriptions.Item label="Họ và tên">
+                {selectedEmployee.ten}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {selectedEmployee.email}
+              </Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">
+                {selectedEmployee.so_dien_thoai}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày sinh">
+                {selectedEmployee.ngay_sinh}
+              </Descriptions.Item>
+              <Descriptions.Item label="Giới tính">
+                {selectedEmployee.gioi_tinh === 'nam' ? 'Nam' : 'Nữ'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ" span={2}>
+                {selectedEmployee.dia_chi}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phòng ban">
+                {selectedEmployee.phong_ban?.ten || 'Chưa phân công'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Chức vụ">
+                {selectedEmployee.chuc_vu?.ten || 'Chưa phân công'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày vào làm">
+                {selectedEmployee.ngay_vao_lam}
+              </Descriptions.Item>
+              <Descriptions.Item label="Lương cơ bản">
+                {selectedEmployee.luong_co_ban ? `${selectedEmployee.luong_co_ban.toLocaleString()} VNĐ` : 'Chưa cập nhật'}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
       </Modal>
     </div>
   );
