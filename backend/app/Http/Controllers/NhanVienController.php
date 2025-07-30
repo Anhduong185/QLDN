@@ -291,8 +291,15 @@ class NhanVienController extends Controller
                 ->groupBy('phong_ban_id')
                 ->get();
 
-            // Thống kê theo giới tính
+            // Thống kê theo chức vụ
+            $theo_chuc_vu = NhanVien::selectRaw('chuc_vu_id, COUNT(*) as so_luong')
+                ->with('chucVu:id,ten')
+                ->groupBy('chuc_vu_id')
+                ->get();
+
+            // Thống kê theo giới tính (loại bỏ null)
             $theo_gioi_tinh = NhanVien::selectRaw('gioi_tinh, COUNT(*) as so_luong')
+                ->whereNotNull('gioi_tinh')
                 ->groupBy('gioi_tinh')
                 ->get();
 
@@ -301,15 +308,27 @@ class NhanVienController extends Controller
                 ->whereYear('created_at', now()->year)
                 ->count();
 
+            // Nhân viên mới trong tuần
+            $nhan_vien_moi_tuan = NhanVien::whereBetween('created_at', [
+                now()->startOfWeek(),
+                now()->endOfWeek()
+            ])->count();
+
+            // Tỷ lệ nhân viên đang làm việc
+            $ty_le_dang_lam = $tong_nv > 0 ? round(($dang_lam / $tong_nv) * 100, 2) : 0;
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'tong_nv' => $tong_nv,
                     'dang_lam' => $dang_lam,
                     'da_nghi' => $da_nghi,
+                    'ty_le_dang_lam' => $ty_le_dang_lam,
                     'theo_phong_ban' => $theo_phong_ban,
+                    'theo_chuc_vu' => $theo_chuc_vu,
                     'theo_gioi_tinh' => $theo_gioi_tinh,
-                    'nhan_vien_moi' => $nhan_vien_moi
+                    'nhan_vien_moi' => $nhan_vien_moi,
+                    'nhan_vien_moi_tuan' => $nhan_vien_moi_tuan
                 ]
             ]);
         } catch (\Exception $e) {

@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `face_data` (
   `face_descriptor` json NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`id~`),
   UNIQUE KEY `face_data_nhan_vien_id_unique` (`nhan_vien_id`),
   CONSTRAINT `face_data_nhan_vien_id_foreign` FOREIGN KEY (`nhan_vien_id`) REFERENCES `nhan_vien` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

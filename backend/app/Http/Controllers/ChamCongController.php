@@ -73,10 +73,16 @@ class ChamCongController extends Controller
                 'ghi_chu' => 'Chấm công vào bằng khuôn mặt'
             ]);
         } else if ($chamCong && $eventType === 'ra') {
-            // Mỗi lần ra đều cập nhật lại giờ ra (lấy lần cuối cùng)
+            // Cập nhật giờ ra và tính trạng thái tổng hợp
+            $trangThaiVao = $this->tinhTrangThaiVao($nhanVien, Carbon::parse($chamCong->gio_vao), $ca);
+            $trangThaiRa = $this->tinhTrangThaiRa($nhanVien, $now, $ca);
+            
+            // Tính trạng thái tổng hợp
+            $trangThaiTongHop = $this->tinhTrangThaiTongHop($trangThaiVao, $trangThaiRa);
+            
             $chamCong->update([
                 'gio_ra' => $now->format('H:i:s'),
-                'trang_thai' => $this->tinhTrangThaiRa($nhanVien, $now, $ca),
+                'trang_thai' => $trangThaiTongHop,
                 'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
             ]);
         }
@@ -96,18 +102,154 @@ class ChamCongController extends Controller
     // 3. Dashboard tổng hợp chấm công
     public function dashboard(Request $request)
     {
-        $from = $request->input('from');
-        $to = $request->input('to');
-        $phongBanId = $request->input('phong_ban_id');
+        try {
+            $from = $request->input('from', now()->startOfMonth()->toDateString());
+            $to = $request->input('to', now()->endOfMonth()->toDateString());
+            $phongBanId = $request->input('phong_ban_id');
 
-        $query = ChamCong::with('nhanVien');
-        if ($from && $to) $query->whereBetween('ngay', [$from, $to]);
-        if ($phongBanId) $query->whereHas('nhanVien', fn($q) => $q->where('phong_ban_id', $phongBanId));
-        $data = $query->get();
+            // Query cơ bản
+            $query = ChamCong::with(['nhanVien.phongBan', 'caLamViec']);
+            if ($from && $to) {
+                $query->whereBetween('ngay', [$from, $to]);
+            }
+            if ($phongBanId) {
+                $query->whereHas('nhanVien', fn($q) => $q->where('phong_ban_id', $phongBanId));
+            }
 
-        // Tổng hợp số ngày công, số lần đi muộn, ...
-        // (Có thể thêm logic tổng hợp ở đây)
-        return response()->json(['success' => true, 'data' => $data]);
+            $chamCongData = $query->get();
+
+            // Thống kê tổng quan
+            $tong_ngay_cong = $chamCongData->count();
+            $co_cham_cong = $chamCongData->where('gio_vao', '!=', null)->count();
+            $khong_cham_cong = $tong_ngay_cong - $co_cham_cong;
+
+            // Thống kê theo trạng thái
+            $dung_giờ = $chamCongData->whereIn('trang_thai', ['dung_gio', 'co_mat'])->count();
+            $di_muon = $chamCongData->whereIn('trang_thai', ['di_muon', 'muon', 'tre'])->count();
+            $ve_som = $chamCongData->whereIn('trang_thai', ['ve_som', 'som'])->count();
+            $vang = $chamCongData->whereIn('trang_thai', ['vang', 'nghi'])->count();
+            $khac = $chamCongData->whereNotIn('trang_thai', ['dung_gio', 'co_mat', 'di_muon', 'muon', 'tre', 've_som', 'som', 'vang', 'nghi'])->count();
+
+            // Thống kê theo phòng ban
+            $theo_phong_ban = $chamCongData->groupBy('nhanVien.phongBan.ten')
+                ->map(function($group) {
+                    return [
+                        'phong_ban' => $group->first()->nhanVien->phongBan->ten ?? 'Không xác định',
+                        'tong_ngay' => $group->count(),
+                        'dung_gio' => $group->whereIn('trang_thai', ['dung_gio', 'co_mat'])->count(),
+                        'di_muon' => $group->whereIn('trang_thai', ['di_muon', 'muon', 'tre'])->count(),
+                        've_som' => $group->whereIn('trang_thai', ['ve_som', 'som'])->count(),
+                        'vang' => $group->whereIn('trang_thai', ['vang', 'nghi'])->count(),
+                    ];
+                })->values();
+
+            // Thống kê theo ngày trong tuần
+            $theo_ngay_trong_tuan = $chamCongData->groupBy(function($item) {
+                return Carbon::parse($item->ngay)->format('l'); // Tên ngày trong tuần
+            })->map(function($group) {
+                return [
+                    'ngay' => $group->first()->ngay,
+                    'tong_ngay' => $group->count(),
+                    'dung_gio' => $group->whereIn('trang_thai', ['dung_gio', 'co_mat'])->count(),
+                    'di_muon' => $group->whereIn('trang_thai', ['di_muon', 'muon', 'tre'])->count(),
+                    've_som' => $group->whereIn('trang_thai', ['ve_som', 'som'])->count(),
+                    'vang' => $group->whereIn('trang_thai', ['vang', 'nghi'])->count(),
+                ];
+            })->values();
+
+            // Thống kê hôm nay
+            $hom_nay = now()->toDateString();
+            $cham_cong_hom_nay = ChamCong::where('ngay', $hom_nay)->count();
+            $nhan_vien_hom_nay = NhanVien::where('trang_thai', 1)->count();
+            $ty_le_cham_cong_hom_nay = $nhan_vien_hom_nay > 0 ? round(($cham_cong_hom_nay / $nhan_vien_hom_nay) * 100, 2) : 0;
+
+            // Thống kê tuần này
+            $tuan_nay = [
+                now()->startOfWeek()->toDateString(),
+                now()->endOfWeek()->toDateString()
+            ];
+            $cham_cong_tuan_nay = ChamCong::whereBetween('ngay', $tuan_nay)->count();
+
+            // Thống kê tháng này
+            $thang_nay = [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString()
+            ];
+            $cham_cong_thang_nay = ChamCong::whereBetween('ngay', $thang_nay)->count();
+
+            // Thống kê top nhân viên chấm công đúng giờ
+            $top_nhan_vien_dung_gio = $chamCongData
+                ->groupBy('nhan_vien_id')
+                ->map(function($group) {
+                    $nhanVien = $group->first()->nhanVien;
+                    $dungGio = $group->whereIn('trang_thai', ['dung_gio', 'co_mat'])->count();
+                    $tongNgay = $group->count();
+                    return [
+                        'nhan_vien_id' => $nhanVien->id,
+                        'ten' => $nhanVien->ten,
+                        'phong_ban' => $nhanVien->phongBan->ten ?? 'Không xác định',
+                        'dung_gio' => $dungGio,
+                        'tong_ngay' => $tongNgay,
+                        'ty_le' => $tongNgay > 0 ? round(($dungGio / $tongNgay) * 100, 2) : 0
+                    ];
+                })
+                ->sortByDesc('ty_le')
+                ->take(5)
+                ->values();
+
+            // Thống kê theo giờ chấm công
+            $theo_gio_cham_cong = $chamCongData
+                ->groupBy(function($item) {
+                    return Carbon::parse($item->gio_vao)->format('H:00');
+                })
+                ->map(function($group) {
+                    return [
+                        'gio' => $group->first()->gio_vao ? Carbon::parse($group->first()->gio_vao)->format('H:00') : 'Không xác định',
+                        'so_luong' => $group->count()
+                    ];
+                })
+                ->sortBy('gio')
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'tong_quan' => [
+                        'tong_ngay_cong' => $tong_ngay_cong,
+                        'co_cham_cong' => $co_cham_cong,
+                        'khong_cham_cong' => $khong_cham_cong,
+                        'ty_le_cham_cong' => $tong_ngay_cong > 0 ? round(($co_cham_cong / $tong_ngay_cong) * 100, 2) : 0
+                    ],
+                    'theo_trang_thai' => [
+                        'dung_gio' => $dung_giờ,
+                        'di_muon' => $di_muon,
+                        've_som' => $ve_som,
+                        'vang' => $vang,
+                        'khac' => $khac
+                    ],
+                    'theo_phong_ban' => $theo_phong_ban,
+                    'theo_ngay_trong_tuan' => $theo_ngay_trong_tuan,
+                    'hom_nay' => [
+                        'cham_cong' => $cham_cong_hom_nay,
+                        'nhan_vien' => $nhan_vien_hom_nay,
+                        'ty_le' => $ty_le_cham_cong_hom_nay
+                    ],
+                    'tuan_nay' => $cham_cong_tuan_nay,
+                    'thang_nay' => $cham_cong_thang_nay,
+                    'top_nhan_vien_dung_gio' => $top_nhan_vien_dung_gio,
+                    'theo_gio_cham_cong' => $theo_gio_cham_cong,
+                    'khoang_thoi_gian' => [
+                        'tu' => $from,
+                        'den' => $to
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy dữ liệu dashboard chấm công: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // 4. Xuất Excel
@@ -231,9 +373,14 @@ class ChamCongController extends Controller
         $gioVao = Carbon::parse($now);
         $gioBatDau = Carbon::parse($ca->gio_bat_dau);
         $tre = $gioVao->diffInMinutes($gioBatDau, false);
-        if ($tre <= 0) return 'co_mat'; // Đến sớm hoặc đúng giờ
-        if ($tre > 0 && $tre <= $ca->phut_tre_cho_phep) return 'tre'; // Đi muộn trong giới hạn cho phép
-        return 'tre'; // Đi muộn quá giới hạn
+        
+        if ($tre <= 0) {
+            return 'dung_gio'; // Đến sớm hoặc đúng giờ
+        } elseif ($tre > 0 && $tre <= $ca->phut_tre_cho_phep) {
+            return 'di_muon'; // Đi muộn trong giới hạn cho phép
+        } else {
+            return 'di_muon'; // Đi muộn quá giới hạn
+        }
     }
 
     protected function tinhTrangThaiRa($nhanVien, $now, $ca)
@@ -241,7 +388,27 @@ class ChamCongController extends Controller
         $gioRa = Carbon::parse($now);
         $gioKetThuc = Carbon::parse($ca->gio_ket_thuc);
         $som = $gioRa->diffInMinutes($gioKetThuc, false);
-        if ($som < 0 && abs($som) <= $ca->phut_som_cho_phep) return 'som'; // Về sớm trong giới hạn cho phép
-        return 'co_mat'; // Về đúng hoặc muộn
+        
+        if ($som >= 0) {
+            return 'dung_gio'; // Về đúng giờ hoặc muộn
+        } elseif (abs($som) <= $ca->phut_som_cho_phep) {
+            return 've_som'; // Về sớm trong giới hạn cho phép
+        } else {
+            return 've_som'; // Về sớm quá giới hạn
+        }
+    }
+
+    protected function tinhTrangThaiTongHop($trangThaiVao, $trangThaiRa)
+    {
+        // Logic tính trạng thái tổng hợp dựa trên giờ vào và giờ ra
+        if ($trangThaiVao === 'dung_gio' && $trangThaiRa === 'dung_gio') {
+            return 'dung_gio'; // Vào đúng giờ và ra đúng giờ
+        } elseif ($trangThaiVao === 'di_muon') {
+            return 'di_muon'; // Đi muộn (ưu tiên hơn về sớm)
+        } elseif ($trangThaiRa === 've_som') {
+            return 've_som'; // Về sớm
+        } else {
+            return 'dung_gio'; // Mặc định
+        }
     }
 }
