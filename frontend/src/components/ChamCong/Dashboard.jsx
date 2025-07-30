@@ -207,7 +207,7 @@ const Dashboard = () => {
         <Col xs={24} lg={12}>
           <Card title="📊 Thống Kê Theo Trạng Thái">
             <Row gutter={[8, 8]}>
-              {theo_trang_thai?.map((item, index) => (
+              {Array.isArray(theo_trang_thai) && theo_trang_thai.map((item, index) => (
                 <Col xs={12} sm={8} key={index}>
                   <Card size="small">
                     <Statistic
@@ -218,13 +218,20 @@ const Dashboard = () => {
                   </Card>
                 </Col>
               ))}
+              {!Array.isArray(theo_trang_thai) && (
+                <Col span={24}>
+                  <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                    Chưa có dữ liệu thống kê theo trạng thái
+                  </div>
+                </Col>
+              )}
             </Row>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card title="🏢 Thống Kê Theo Phòng Ban">
             <Row gutter={[8, 8]}>
-              {theo_phong_ban?.map((item, index) => (
+              {Array.isArray(theo_phong_ban) && theo_phong_ban.map((item, index) => (
                 <Col xs={12} sm={8} key={index}>
                   <Card size="small">
                     <Statistic
@@ -235,6 +242,13 @@ const Dashboard = () => {
                   </Card>
                 </Col>
               ))}
+              {!Array.isArray(theo_phong_ban) && (
+                <Col span={24}>
+                  <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                    Chưa có dữ liệu thống kê theo phòng ban
+                  </div>
+                </Col>
+              )}
             </Row>
           </Card>
         </Col>

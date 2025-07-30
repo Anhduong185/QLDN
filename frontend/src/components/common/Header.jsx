@@ -1,220 +1,257 @@
-import React, { useState } from "react";
-import { Layout, Menu, Avatar, Dropdown, Typography, Badge } from "antd";
+import React, { useState } from 'react';
+import { Layout, Menu, Button, Avatar, Dropdown, Space, Typography } from 'antd';
 import {
   UserOutlined,
-  DownOutlined,
-  TeamOutlined,
   ClockCircleOutlined,
-  DollarOutlined,
+  TableOutlined,
+  FileExcelOutlined,
+  FormOutlined,
+  RobotOutlined,
   BarChartOutlined,
-  SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   BellOutlined,
-  GlobalOutlined,
-} from "@ant-design/icons";
+  SettingOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons';
 
-const { Header } = Layout;
+const { Header: AntHeader } = Layout;
 const { Title } = Typography;
 
-const mainMenuItems = [
-  {
-    key: "nhan-su",
-    icon: <TeamOutlined />,
-    label: "Quản lý nhân sự",
-    children: [
-      { key: "danh-sach-nhan-vien", label: "Danh sách nhân viên" },
-      { key: "phong-ban", label: "Phòng ban" },
-      { key: "chuc-vu", label: "Chức vụ" },
-      { key: "hop-dong", label: "Hợp đồng" },
-      { key: "bang-cap", label: "Bằng cấp" },
-    ],
-  },
-  {
-    key: "cham-cong",
-    icon: <ClockCircleOutlined />,
-    label: "Chấm công",
-    children: [
-      { key: "check-in", label: "Chấm công" },
-      { key: "lich-su-cham-cong", label: "Lịch sử chấm công" },
-      { key: "nghi-phep", label: "Nghỉ phép" },
-      { key: "ca-lam-viec", label: "Ca làm việc" },
-      { key: "dang-ky-khuon-mat", label: "Đăng ký khuôn mặt" },
-    ],
-  },
-  {
-    key: "tai-chinh",
-    icon: <DollarOutlined />,
-    label: "Tài chính",
-    children: [
-      { key: "luong", label: "Lương" },
-      { key: "thuong", label: "Thưởng" },
-      { key: "phu-cap", label: "Phụ cấp" },
-      { key: "bao-hiem", label: "Bảo hiểm" },
-      { key: "thue", label: "Thuế" },
-    ],
-  },
-  {
-    key: "bao-cao",
-    icon: <BarChartOutlined />,
-    label: "Báo cáo",
-    children: [
-      { key: "bao-cao-nhan-su", label: "Báo cáo nhân sự" },
-      { key: "bao-cao-cham-cong", label: "Báo cáo chấm công" },
-      { key: "bao-cao-luong", label: "Báo cáo lương" },
-      { key: "thong-ke", label: "Thống kê" },
-    ],
-  },
-  {
-    key: "cai-dat",
-    icon: <SettingOutlined />,
-    label: "Cài đặt",
-    children: [
-      { key: "nguoi-dung", label: "Quản lý người dùng" },
-      { key: "phan-quyen", label: "Phân quyền" },
-      { key: "cau-hinh", label: "Cấu hình hệ thống" },
-      { key: "sao-luu", label: "Sao lưu dữ liệu" },
-    ],
-  },
-];
+const Header = ({ collapsed, onCollapse, currentModule, onModuleChange }) => {
+  const [selectedKey, setSelectedKey] = useState('cham-cong');
 
-const userMenu = (
-  <Menu>
-    <Menu.Item key="profile" icon={<UserOutlined />}>
-      Thông tin cá nhân
-    </Menu.Item>
-    <Menu.Item key="settings" icon={<SettingOutlined />}>
-      Cài đặt tài khoản
-    </Menu.Item>
-    <Menu.Divider />
-    <Menu.Item key="logout">Đăng xuất</Menu.Item>
-  </Menu>
-);
+  const menuItems = [
+    {
+      key: 'cham-cong',
+      icon: <ClockCircleOutlined />,
+      label: 'Chấm Công',
+      children: [
+        {
+          key: 'check-in',
+          icon: <ClockCircleOutlined />,
+          label: 'Chấm Công',
+        },
+        {
+          key: 'access-logs',
+          icon: <TableOutlined />,
+          label: 'Lịch Sử Ra/Vào',
+        },
+        {
+          key: 'dashboard',
+          icon: <BarChartOutlined />,
+          label: 'Dashboard',
+        },
+        {
+          key: 'register-face',
+          icon: <UserOutlined />,
+          label: 'Đăng Ký Khuôn Mặt',
+        },
+        {
+          key: 'export',
+          icon: <FileExcelOutlined />,
+          label: 'Xuất Excel',
+        },
+      ],
+    },
+    {
+      key: 'nhan-su',
+      icon: <UserOutlined />,
+      label: 'Nhân Sự',
+      children: [
+        {
+          key: 'nhan-vien',
+          icon: <UserOutlined />,
+          label: 'Quản Lý Nhân Viên',
+        },
+        {
+          key: 'phong-ban',
+          icon: <TableOutlined />,
+          label: 'Phòng Ban',
+        },
+        {
+          key: 'chuc-vu',
+          icon: <UserOutlined />,
+          label: 'Chức Vụ',
+        },
+      ],
+    },
+    {
+      key: 'nghi-phep',
+      icon: <FormOutlined />,
+      label: 'Nghỉ Phép',
+    },
+    {
+      key: 'ai-analysis',
+      icon: <RobotOutlined />,
+      label: 'AI Phân Tích',
+    },
+    {
+      key: 'statistics',
+      icon: <BarChartOutlined />,
+      label: 'Thống Kê',
+    },
+  ];
 
-const notificationMenu = (
-  <Menu>
-    <Menu.Item key="notification1">
-      Có 5 nhân viên chưa chấm công hôm nay
-    </Menu.Item>
-    <Menu.Item key="notification2">3 đơn nghỉ phép cần duyệt</Menu.Item>
-    <Menu.Item key="notification3">Báo cáo tháng đã sẵn sàng</Menu.Item>
-  </Menu>
-);
-
-const AppHeader = ({ onMenuSelect }) => {
-  const [selectedKeys, setSelectedKeys] = useState(["nhan-su"]);
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Hồ sơ cá nhân',
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: 'Cài đặt',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Đăng xuất',
+    },
+  ];
 
   const handleMenuClick = ({ key }) => {
-    setSelectedKeys([key]);
-    // Gọi callback từ parent component
-    if (onMenuSelect) {
-      onMenuSelect(key);
+    setSelectedKey(key);
+    onModuleChange && onModuleChange(key);
+  };
+
+  const handleUserMenuClick = ({ key }) => {
+    switch (key) {
+      case 'logout':
+        // Xử lý đăng xuất
+        console.log('Đăng xuất');
+        break;
+      case 'profile':
+        // Xử lý hồ sơ cá nhân
+        console.log('Hồ sơ cá nhân');
+        break;
+      case 'settings':
+        // Xử lý cài đặt
+        console.log('Cài đặt');
+        break;
+      default:
+        break;
     }
-    // Xử lý navigation ở đây
-    console.log("Selected menu:", key);
+  };
+
+  const getPageTitle = () => {
+    const menuItem = menuItems.find(item => 
+      item.key === selectedKey || 
+      item.children?.some(child => child.key === selectedKey)
+    );
+    
+    if (menuItem?.children) {
+      const childItem = menuItem.children.find(child => child.key === selectedKey);
+      return childItem?.label || menuItem.label;
+    }
+    
+    return menuItem?.label || 'Hệ thống Quản lý Nhân sự';
   };
 
   return (
-    <Header
-      style={{
-        background: "#fff",
-        padding: "0 24px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        boxShadow: "0 2px 8px #f0f1f2",
-        height: 64,
-        position: "sticky",
-        top: 0,
-        zIndex: 1000,
-      }}
-    >
-      {/* Logo và tên hệ thống */}
-      <div style={{ display: "flex", alignItems: "center", minWidth: 200 }}>
-        <span
-          role="img"
-          aria-label="logo"
-          style={{ fontSize: 28, marginRight: 12 }}
-        >
-          🏢
-        </span>
-        <Title
-          level={4}
-          style={{ margin: 0, color: "#1890ff", fontWeight: 700 }}
-        >
-          QLNS Pro
-        </Title>
+    <AntHeader style={{
+      background: '#fff',
+      padding: '0 24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      borderBottom: '1px solid #f0f0f0',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+    }}>
+      {/* Left side - Logo and Collapse button */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Button
+          type="text"
+          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={onCollapse}
+          style={{
+            fontSize: '16px',
+            width: 64,
+            height: 64,
+            marginRight: 16,
+          }}
+        />
+        
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            background: '#1890ff',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 12,
+          }}>
+            <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>
+              QL
+            </span>
+          </div>
+          <Title level={4} style={{ margin: 0, color: '#1890ff' }}>
+            {getPageTitle()}
+          </Title>
+        </div>
       </div>
 
-      {/* Menu chính */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+      {/* Center - Navigation Menu */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
         <Menu
           mode="horizontal"
-          selectedKeys={selectedKeys}
+          selectedKeys={[selectedKey]}
           onClick={handleMenuClick}
-          items={mainMenuItems}
+          items={menuItems}
           style={{
-            border: "none",
-            background: "transparent",
-            fontSize: 14,
+            background: 'transparent',
+            border: 'none',
+            fontSize: '14px',
           }}
         />
       </div>
 
-      {/* Khu vực bên phải */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          minWidth: 200,
-          justifyContent: "flex-end",
-        }}
-      >
-        {/* Thông báo */}
+      {/* Right side - User info and notifications */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Notifications */}
+        <Button
+          type="text"
+          icon={<BellOutlined />}
+          style={{ fontSize: '16px' }}
+          badge={{ count: 3 }}
+        />
+        
+        {/* User dropdown */}
         <Dropdown
-          overlay={notificationMenu}
+          menu={{
+            items: userMenuItems,
+            onClick: handleUserMenuClick,
+          }}
           placement="bottomRight"
-          trigger={["click"]}
+          trigger={['click']}
         >
-          <Badge count={3} size="small">
-            <BellOutlined
-              style={{ fontSize: 18, color: "#666", cursor: "pointer" }}
-            />
-          </Badge>
-        </Dropdown>
-
-        {/* Ngôn ngữ */}
-        <Dropdown
-          overlay={
-            <Menu>
-              <Menu.Item key="vi">Tiếng Việt</Menu.Item>
-              <Menu.Item key="en">English</Menu.Item>
-            </Menu>
-          }
-          placement="bottomRight"
-        >
-          <GlobalOutlined
-            style={{ fontSize: 18, color: "#666", cursor: "pointer" }}
-          />
-        </Dropdown>
-
-        {/* User info */}
-        <Dropdown overlay={userMenu} placement="bottomRight">
-          <div
-            style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
-          >
+          <Space style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: '6px', hover: { background: '#f5f5f5' } }}>
             <Avatar
               icon={<UserOutlined />}
-              style={{ backgroundColor: "#1890ff", marginRight: 8 }}
+              style={{ backgroundColor: '#1890ff' }}
             />
-            <span style={{ fontWeight: 500, color: "#333", marginRight: 4 }}>
-              Admin
-            </span>
-            <DownOutlined style={{ fontSize: 12, color: "#888" }} />
-          </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '14px', fontWeight: '500', color: '#333' }}>
+                Admin User
+              </span>
+              <span style={{ fontSize: '12px', color: '#666' }}>
+                Quản trị viên
+              </span>
+            </div>
+          </Space>
         </Dropdown>
       </div>
-    </Header>
+    </AntHeader>
   );
 };
 
-export default AppHeader;
+export default Header;

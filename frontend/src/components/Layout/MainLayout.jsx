@@ -12,8 +12,10 @@ import ExportExcel from '../ChamCong/ExportExcel';
 import RegisterFace from '../ChamCong/RegisterFace';
 import AiDashboard from '../AiAnalysis/AiDashboard';
 import StatisticsDashboard from '../Statistics/StatisticsDashboard';
+import NhanVienList from '../NhanSu/NhanVien/NhanVienList';
+import Header from '../common/Header';
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 const { Title } = Typography;
 
 const menuItems = [
@@ -29,47 +31,71 @@ const menuItems = [
     )
   },
   { key: 'export', icon: <FileExcelOutlined />, label: 'Xuất Excel', component: <ExportExcel /> },
+  { key: 'nhanvien', icon: <UserOutlined />, label: 'Quản lý nhân viên', component: <NhanVienList /> },
   { key: 'ai-dashboard', icon: <RobotOutlined />, label: 'AI Phân Tích', component: <AiDashboard /> },
   { key: 'statistics', icon: <BarChartOutlined />, label: 'Thống Kê', component: <StatisticsDashboard /> }
 ];
 
 const MainLayout = () => {
   const [selectedKey, setSelectedKey] = useState('checkin');
+  const [collapsed, setCollapsed] = useState(false);
   const selected = menuItems.find(item => item.key === selectedKey);
+
+  const handleModuleChange = (key) => {
+    setSelectedKey(key);
+  };
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" style={{ background: '#001529' }}>
-        <div style={{
-          height: 64, margin: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 8,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20
-        }}>
-          QLNS
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          onSelect={({ key }) => setSelectedKey(key)}
-          items={menuItems.map(item => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label
-          }))}
-        />
-      </Sider>
+      {/* Header */}
+      <Header 
+        collapsed={collapsed}
+        onCollapse={handleCollapse}
+        currentModule={selectedKey}
+        onModuleChange={handleModuleChange}
+      />
+      
       <Layout>
-        <Header style={{ 
-          background: '#fff', 
-          padding: '0 24px', 
-          display: 'flex', 
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            {selected?.label || 'Hệ thống Quản lý Nhân sự'}
-          </Title>
-        </Header>
+        {/* Sidebar */}
+        <Sider 
+          breakpoint="lg" 
+          collapsedWidth="0" 
+          style={{ background: '#001529' }}
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+        >
+          <div style={{
+            height: 64, 
+            margin: 16, 
+            background: 'rgba(255,255,255,0.1)', 
+            borderRadius: 8,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: '#fff', 
+            fontWeight: 700, 
+            fontSize: 20
+          }}>
+            QLNS
+          </div>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            onSelect={({ key }) => setSelectedKey(key)}
+            items={menuItems.map(item => ({
+              key: item.key,
+              icon: item.icon,
+              label: item.label
+            }))}
+          />
+        </Sider>
+        
+        {/* Main Content */}
         <Content style={{ 
           margin: '24px', 
           padding: '24px', 
