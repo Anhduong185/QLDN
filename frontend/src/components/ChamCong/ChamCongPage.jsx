@@ -72,52 +72,6 @@ const ChamCongPage = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f5f5" }}>
-      {/* Dashboard Stats */}
-      <div style={{ padding: "24px 24px 0 24px" }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Tổng nhân viên"
-                value={150}
-                prefix={<UserOutlined />}
-                valueStyle={{ color: "#1890ff" }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Đã chấm công hôm nay"
-                value={120}
-                prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: "#52c41a" }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Chưa chấm công"
-                value={30}
-                prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: "#ff4d4f" }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Đơn nghỉ phép chờ duyệt"
-                value={5}
-                prefix={<FormOutlined />}
-                valueStyle={{ color: "#722ed1" }}
-              />
-            </Card>
-          </Col>
-        </Row>
-      </div>
-
       <Layout style={{ padding: "24px" }}>
         {/* Sidebar Menu */}
         <Sider width={250} style={{ background: "#fff", marginRight: 16 }}>

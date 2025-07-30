@@ -19,7 +19,12 @@ const NhanSuPage = () => {
     tong_nv: 0,
     dang_lam: 0,
     da_nghi: 0,
+    ty_le_dang_lam: 0,
     nhan_vien_moi: 0,
+    nhan_vien_moi_tuan: 0,
+    theo_phong_ban: [],
+    theo_chuc_vu: [],
+    theo_gioi_tinh: [],
   });
 
   // Load dashboard data
@@ -95,6 +100,7 @@ const NhanSuPage = () => {
               <Statistic
                 title="Đang làm việc"
                 value={dashboardData.dang_lam}
+                suffix={`(${dashboardData.ty_le_dang_lam}%)`}
                 prefix={<UserOutlined />}
                 valueStyle={{ color: "#52c41a" }}
               />
@@ -113,14 +119,40 @@ const NhanSuPage = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="Nhân viên mới (tháng)"
+                title="Nhân viên mới"
                 value={dashboardData.nhan_vien_moi}
+                suffix={`(tháng) / ${dashboardData.nhan_vien_moi_tuan} (tuần)`}
                 prefix={<UserOutlined />}
                 valueStyle={{ color: "#722ed1" }}
               />
             </Card>
           </Col>
         </Row>
+
+        {/* Thống kê chi tiết */}
+        {dashboardData.theo_phong_ban &&
+          dashboardData.theo_phong_ban.length > 0 && (
+            <Row gutter={16} style={{ marginTop: 16 }}>
+              <Col span={24}>
+                <Card title="Thống kê theo phòng ban" size="small">
+                  <Row gutter={[16, 16]}>
+                    {dashboardData.theo_phong_ban.map((pb, index) => (
+                      <Col span={6} key={index}>
+                        <Card size="small">
+                          <Statistic
+                            title={pb.phong_ban?.ten || "Không xác định"}
+                            value={pb.so_luong}
+                            suffix="nhân viên"
+                            prefix={<BankOutlined />}
+                          />
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          )}
       </div>
 
       <Layout style={{ padding: "24px" }}>
