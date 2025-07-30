@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Card } from 'antd';
+import { Layout, Menu, Typography } from 'antd';
 import {
   UserOutlined, ClockCircleOutlined, TableOutlined, FileExcelOutlined, FormOutlined, RobotOutlined, BarChartOutlined
 } from '@ant-design/icons';
@@ -12,7 +12,7 @@ import ExportExcel from '../ChamCong/ExportExcel';
 import RegisterFace from '../ChamCong/RegisterFace';
 import AiDashboard from '../AiAnalysis/AiDashboard';
 import StatisticsDashboard from '../Statistics/StatisticsDashboard';
-import NhanVienList from '../NhanSu/NhanVien/NhanVienList';
+import NhanVienList from '../NhanSu/NhanVienList';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -46,13 +46,13 @@ const MainLayout = () => {
           height: 64, margin: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 8,
           display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20
         }}>
-          QLNS
+          <span role="img" aria-label="logo">🕑</span> Chấm Công AI
         </div>
         <Menu
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          onSelect={({ key }) => setSelectedKey(key)}
+          onClick={e => setSelectedKey(e.key)}
           items={menuItems.map(item => ({
             key: item.key,
             icon: item.icon,
@@ -61,30 +61,19 @@ const MainLayout = () => {
         />
       </Sider>
       <Layout>
-        <Header style={{ 
-          background: '#fff', 
-          padding: '0 24px', 
-          display: 'flex', 
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        <Header style={{
+          background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px #f0f1f2'
         }}>
           <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            {selected?.label || 'Hệ thống Quản lý Nhân sự'}
+            {selected.label}
           </Title>
         </Header>
-        <Content style={{ 
-          margin: '24px', 
-          padding: '24px', 
-          background: '#fff', 
-          borderRadius: '8px',
-          minHeight: 'calc(100vh - 112px)',
-          overflow: 'auto'
-        }}>
-          {selected?.component}
+        <Content style={{ margin: '24px', minHeight: 280 }}>
+          {selected.component}
         </Content>
       </Layout>
     </Layout>
   );
 };
 
-export default MainLayout;
+export default MainLayout; 

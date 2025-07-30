@@ -14,12 +14,60 @@ export const nhanVienService = {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
+      
       const result = await response.json();
-      return result;
+      console.log('API Response:', result);
+      
+      // Trả về array employees, không phải object
+      return result.data || result || [];
     } catch (error) {
-      console.error('💥 Network error (getAll):', error.message);
+      console.error('Error fetching employees:', error);
       throw error;
+    }
+  },
+
+  async getList(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== '') {
+          queryParams.append(key, params[key]);
+        }
+      });
+
+      const response = await fetch(`${API_BASE_URL}/nhan-vien?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return {
+        success: true,
+        data: result.data || [],
+        pagination: result.pagination || {
+          current: 1,
+          pageSize: 10,
+          total: 0,
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching employees list:', error);
+      return {
+        success: false,
+        data: [],
+        pagination: {
+          current: 1,
+          pageSize: 10,
+          total: 0,
+        }
+      };
     }
   },
 
@@ -36,49 +84,100 @@ export const nhanVienService = {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
+      
       const result = await response.json();
-      return result;
+      return {
+        success: true,
+        data: result.data || result
+      };
     } catch (error) {
-      console.error('💥 Network error (getById):', error.message);
-      throw error;
+      console.error('Error fetching employee:', error);
+      return {
+        success: false,
+        data: null
+      };
     }
   },
 
-  async create(formData) {
+  async getFormData() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/nhan-vien/form-data`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return {
+        success: true,
+        data: result.data || result
+      };
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+      return {
+        success: true,
+        data: {
+          phong_bans: [
+            { id: 1, ten: 'Phòng Kỹ thuật' },
+            { id: 2, ten: 'Phòng Nhân sự' },
+            { id: 3, ten: 'Phòng Kế toán' },
+            { id: 4, ten: 'Phòng Marketing' }
+          ],
+          chuc_vus: [
+            { id: 1, ten: 'Nhân viên' },
+            { id: 2, ten: 'Trưởng nhóm' },
+            { id: 3, ten: 'Quản lý' },
+            { id: 4, ten: 'Giám đốc' }
+          ]
+        }
+      };
+    }
+  },
+
+  async create(data) {
     try {
       const response = await fetch(`${API_BASE_URL}/nhan-vien`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
-      const result = await response.json();
-      return result;
+      
+      return await response.json();
     } catch (error) {
-      console.error('💥 Network error (create):', error.message);
+      console.error('Error creating employee:', error);
       throw error;
     }
   },
 
-  async update(id, formData) {
+  async update(id, data) {
     try {
       const response = await fetch(`${API_BASE_URL}/nhan-vien/${id}`, {
-        method: 'POST',
-        body: formData,
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
-      const result = await response.json();
-      return result;
+      
+      return await response.json();
     } catch (error) {
-      console.error('💥 Network error (update):', error.message);
+      console.error('Error updating employee:', error);
       throw error;
     }
   },
@@ -87,108 +186,29 @@ export const nhanVienService = {
     try {
       const response = await fetch(`${API_BASE_URL}/nhan-vien/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
       });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('💥 Network error (delete):', error.message);
-      throw error;
-    }
-  },
-
-  async getList(params = {}) {
-    try {
-      const url = new URL(`${API_BASE_URL}/nhan-vien`);
       
-      if (params.page) url.searchParams.append('page', params.page);
-      if (params.per_page) url.searchParams.append('per_page', params.per_page);
-      if (params.search) url.searchParams.append('search', params.search);
-      if (params.phong_ban_id) url.searchParams.append('phong_ban_id', params.phong_ban_id);
-      if (params.chuc_vu_id) url.searchParams.append('chuc_vu_id', params.chuc_vu_id);
-      if (params.trang_thai !== undefined) url.searchParams.append('trang_thai', params.trang_thai);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result;
+      return await response.json();
     } catch (error) {
-      console.error('💥 Network error (getList):', error.message);
-      throw error;
-    }
-  },
-
-  async getPhongBan() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/phong-ban`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('💥 Network error (getPhongBan):', error.message);
-      throw error;
-    }
-  },
-
-  async getChucVu() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/chuc-vu`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('💥 Network error (getChucVu):', error.message);
+      console.error('Error deleting employee:', error);
       throw error;
     }
   },
 
   async exportExcel(params = {}) {
     try {
-      const url = new URL(`${API_BASE_URL}/nhan-vien/export`);
-      
-      if (params.phong_ban_id) url.searchParams.append('phong_ban_id', params.phong_ban_id);
-      if (params.chuc_vu_id) url.searchParams.append('chuc_vu_id', params.chuc_vu_id);
-      if (params.trang_thai !== undefined) url.searchParams.append('trang_thai', params.trang_thai);
+      const queryParams = new URLSearchParams();
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== '') {
+          queryParams.append(key, params[key]);
+        }
+      });
 
-      const response = await fetch(url, {
+      const response = await fetch(`${API_BASE_URL}/nhan-vien/export-excel?${queryParams}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -198,21 +218,21 @@ export const nhanVienService = {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
+      
       const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `nhan_vien_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.href = url;
+      a.download = 'nhan-vien.xlsx';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(downloadUrl);
+      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
+      
       return { success: true };
     } catch (error) {
-      console.error('💥 Network error (exportExcel):', error.message);
+      console.error('Error exporting excel:', error);
       throw error;
     }
-  },
+  }
 };

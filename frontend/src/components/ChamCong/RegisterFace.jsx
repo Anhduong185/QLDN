@@ -46,26 +46,28 @@ const convertErrorMessage = (raw, selectedEmployee) => {
             }
           }
           return decoded;
-        } catch {
-          return raw;
-        }
+        } catch {}
       }
+      return raw;
     }
-    return raw;
-  } catch {
-    return raw;
+    return 'Đã xảy ra lỗi không xác định.';
+  } catch (e) {
+    return 'Đã xảy ra lỗi. Vui lòng thử lại.';
   }
 };
 
 const RegisterFace = () => {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [registrationStatus, setRegistrationStatus] = useState(null);
-  const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState('idle');
+  const [hasFaceData, setHasFaceData] = useState(false); // mới
+  const [allowOverride, setAllowOverride] = useState(false); // mới
+  const selectedEmployeeRef = useRef(null);
+
+  useEffect(() => {
+    selectedEmployeeRef.current = selectedEmployee;
+  }, [selectedEmployee]);
 
   useEffect(() => {
     loadEmployees();
@@ -73,114 +75,136 @@ const RegisterFace = () => {
 
   const loadEmployees = async () => {
     try {
-      const response = await nhanVienService.getAll();
-      if (response.success) {
-        setEmployees(response.data || []);
+      const data = await nhanVienService.getAll();
+      if (Array.isArray(data)) {
+        setEmployees(data);
+      } else if (data && Array.isArray(data.data)) {
+        setEmployees(data.data);
       } else {
-        setError('Không thể tải danh sách nhân viên');
+        console.error('Invalid employees data format:', data);
+        setEmployees([]);
+        setMessage('❌ Dữ liệu nhân viên không hợp lệ');
       }
     } catch (error) {
       console.error('Error loading employees:', error);
-      setError('Lỗi khi tải danh sách nhân viên');
-    }
-  };
-
-  const handleEmployeeSelect = async (employeeId) => {
-    if (!employeeId) {
-      setSelectedEmployee(null);
-      setRegistrationStatus(null);
-      return;
-    }
-
-    const employee = employees.find(emp => emp.id === employeeId);
-    setSelectedEmployee(employee);
-
-    try {
-      const status = await chamCongService.getRegistrationStatus(employeeId);
-      setRegistrationStatus(status);
-    } catch (error) {
-      console.error('Error checking registration status:', error);
-      setRegistrationStatus({ registered: false });
+      setEmployees([]);
+      setMessage('❌ Lỗi khi tải danh sách nhân viên: ' + error.message);
     }
   };
 
   const handleRegisterFace = useCallback(async (faceDescriptor) => {
-    if (!selectedEmployee) {
-      setError('Vui lòng chọn nhân viên trước khi đăng ký khuôn mặt');
+    if (!selectedEmployeeRef.current) {
+      setMessage('❌ Vui lòng chọn nhân viên trước');
       return;
     }
 
-    if (isProcessing) {
-      console.log('🔍 RegisterFace: Already processing, skipping...');
-      return;
-    }
-
-    console.log('🔍 RegisterFace: handleRegisterFace called', new Date().toISOString());
-    setIsProcessing(true);
-    setIsRegistering(true);
-    setMessage('');
-    setError('');
-    setSuccess(false);
+    setRegistrationStatus('processing');
+    setMessage('🔄 Đang đăng ký khuôn mặt...');
 
     try {
       const result = await chamCongService.registerFace({
-        nhan_vien_id: selectedEmployee.id,
-        face_descriptor: Array.from(faceDescriptor),
+        nhan_vien_id: selectedEmployeeRef.current.id,
+        face_descriptor: Array.from(faceDescriptor)
       });
 
-      console.log('🔍 RegisterFace: API response', result);
-
       if (result.success) {
-        setSuccess(true);
-        setMessage('Đăng ký khuôn mặt thành công!');
-        // Cập nhật trạng thái đăng ký
-        setRegistrationStatus({ registered: true, updated_at: new Date().toISOString() });
+        setRegistrationStatus('success');
+        setMessage(`✅ ${result.message}`);
+        setTimeout(() => {
+          setRegistrationStatus('idle');
+          setSelectedEmployee(null);
+          setMessage('');
+        }, 3000);
       } else {
-        setError(result.message || 'Đăng ký khuôn mặt thất bại');
+        setRegistrationStatus('error');
+        setMessage(`❌ ${convertErrorMessage(result.message, selectedEmployeeRef.current)}`);
       }
-    } catch (e) {
-      console.error('🔍 RegisterFace: Error', e);
-      const userFriendlyMsg = convertErrorMessage(e.message, selectedEmployee);
-      setError(userFriendlyMsg);
-    } finally {
-      setIsRegistering(false);
-      setIsProcessing(false);
+    } catch (error) {
+      setRegistrationStatus('error');
+      let msg = error.message;
+      try {
+        // Nếu message bắt đầu bằng HTTP 400:, tách lấy phần JSON
+        if (msg && msg.includes('HTTP 400:')) {
+          const jsonPart = msg.split('HTTP 400:')[1]?.trim();
+          if (jsonPart) {
+            const parsed = JSON.parse(jsonPart);
+            msg = parsed.message || msg;
+          }
+        }
+        // Nếu message là JSON thuần
+        else if (msg && msg.startsWith('{')) {
+          const parsed = JSON.parse(msg);
+          msg = parsed.message || msg;
+        }
+      } catch {}
+      setMessage(`❌ ${msg || 'Đăng ký khuôn mặt thất bại'}`);
     }
-  }, [selectedEmployee, isProcessing]);
+  }, []);
 
   const checkRegistrationStatus = async (employeeId) => {
     try {
-      const status = await chamCongService.getRegistrationStatus(employeeId);
-      setRegistrationStatus(status);
-      return status;
+      const response = await fetch(`http://localhost:8000/api/cham-cong/registration-status/${employeeId}`);
+      const raw = await response.text();
+
+      let result;
+      try {
+        result = JSON.parse(raw);
+      } catch (e) {
+        console.error('❌ Không phải JSON:', raw);
+        setMessage('❌ Không thể kiểm tra trạng thái đăng ký (Phản hồi không hợp lệ)');
+        setHasFaceData(false);
+        setAllowOverride(false);
+        return;
+      }
+
+      if (result.success && result.data && result.data.has_face_data) {
+        setMessage(`ℹ️ Nhân viên này đã đăng ký khuôn mặt vào ${new Date(result.data.registered_at).toLocaleString()}`);
+        setHasFaceData(true);
+        setAllowOverride(false);
+      } else {
+        setMessage('ℹ️ Nhân viên này chưa đăng ký khuôn mặt');
+        setHasFaceData(false);
+        setAllowOverride(false);
+      }
     } catch (error) {
       console.error('Error checking registration status:', error);
-      return { registered: false };
+      setMessage(`❌ Lỗi khi kiểm tra trạng thái: ${error.message}`);
+      setHasFaceData(false);
+      setAllowOverride(false);
     }
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
-      <h2>📝 Đăng Ký Khuôn Mặt</h2>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#007bff' }}>
+        📝 Đăng ký khuôn mặt
+      </h2>
 
-      {/* Chọn nhân viên */}
-      <div style={{ marginBottom: '24px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-          Chọn nhân viên:
-        </label>
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Chọn nhân viên:</label>
         <select
           value={selectedEmployee?.id || ''}
-          onChange={(e) => handleEmployeeSelect(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={(e) => {
+            const employee = employees.find(emp => emp.id === parseInt(e.target.value));
+            setSelectedEmployee(employee);
+            setMessage('');
+            setHasFaceData(false);
+            setAllowOverride(false);
+            if (employee) {
+              checkRegistrationStatus(employee.id);
+            }
+          }}
           style={{
             width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '6px',
-            fontSize: '14px',
+            padding: '10px',
+            border: '2px solid #ddd',
+            borderRadius: '5px',
+            fontSize: '16px'
           }}
+          disabled={registrationStatus === 'processing'}
         >
           <option value="">-- Chọn nhân viên --</option>
-          {employees.map((employee) => (
+          {Array.isArray(employees) && employees.map(employee => (
             <option key={employee.id} value={employee.id}>
               {employee.ma_nhan_vien} - {employee.ten}
             </option>
@@ -188,81 +212,88 @@ const RegisterFace = () => {
         </select>
       </div>
 
-      {/* Thông tin nhân viên được chọn */}
       {selectedEmployee && (
-        <div style={{ marginBottom: '24px', padding: '16px', background: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f' }}>
-          <h3>👤 Thông tin nhân viên</h3>
-          <p><strong>Mã NV:</strong> {selectedEmployee.ma_nhan_vien}</p>
+        <div style={{
+          backgroundColor: '#f8f9fa',
+          padding: '15px',
+          borderRadius: '5px',
+          marginBottom: '20px',
+          border: '1px solid #dee2e6'
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Thông tin nhân viên:</h4>
+          <p><strong>Mã:</strong> {selectedEmployee.ma_nhan_vien}</p>
           <p><strong>Tên:</strong> {selectedEmployee.ten}</p>
-          <p><strong>Email:</strong> {selectedEmployee.email || 'N/A'}</p>
-          <p><strong>Phòng ban:</strong> {selectedEmployee.phong_ban?.ten || 'N/A'}</p>
-          
-          {/* Trạng thái đăng ký */}
-          {registrationStatus && (
-            <div style={{ marginTop: '12px' }}>
-              <p>
-                <strong>Trạng thái đăng ký:</strong>{' '}
-                {registrationStatus.registered ? (
-                  <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
-                    ✅ Đã đăng ký
-                  </span>
-                ) : (
-                  <span style={{ color: '#faad14', fontWeight: 'bold' }}>
-                    ⚠️ Chưa đăng ký
-                  </span>
-                )}
-              </p>
-              {registrationStatus.registered && registrationStatus.updated_at && (
-                <p>
-                  <strong>Cập nhật lần cuối:</strong>{' '}
-                  {new Date(registrationStatus.updated_at).toLocaleString('vi-VN')}
-                </p>
-              )}
-            </div>
-          )}
+          <p><strong>Email:</strong> {selectedEmployee.email}</p>
         </div>
       )}
 
-      {/* Thông báo lỗi */}
-      {error && (
-        <div style={{ marginBottom: '16px', padding: '12px', background: '#fff2f0', borderRadius: '6px', border: '1px solid #ffccc7', color: '#cf1322' }}>
-          ❌ {error}
+      {message && (
+        <div style={{
+          padding: '15px',
+          marginBottom: '20px',
+          borderRadius: '5px',
+          backgroundColor: message.includes('❌') ? '#f8d7da' : 
+                          message.includes('✅') ? '#d4edda' : 
+                          message.includes('ℹ️') ? '#d1ecf1' : '#fff3cd',
+          color: message.includes('❌') ? '#721c24' : 
+                 message.includes('✅') ? '#155724' : 
+                 message.includes('ℹ️') ? '#0c5460' : '#856404',
+          border: `1px solid ${message.includes('❌') ? '#f5c6cb' : 
+                                message.includes('✅') ? '#c3e6cb' : 
+                                message.includes('ℹ️') ? '#bee5eb' : '#ffeaa7'}`
+        }}>
+          {message}
         </div>
       )}
 
-      {/* Thông báo thành công */}
-      {success && (
-        <div style={{ marginBottom: '16px', padding: '12px', background: '#f6ffed', borderRadius: '6px', border: '1px solid #b7eb8f', color: '#52c41a' }}>
-          ✅ {message}
+      {/* Nếu đã có face-data, hiện nút thay mới */}
+      {selectedEmployee && hasFaceData && !allowOverride && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={() => setAllowOverride(true)}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#ffc107',
+              color: '#212529',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px'
+            }}
+          >
+            🔄 Thay mới khuôn mặt
+          </button>
         </div>
       )}
 
-      {/* Face Recognition Component */}
-      {selectedEmployee && (
-        <div style={{ marginTop: '24px' }}>
-          <h3>📷 Đăng ký khuôn mặt cho {selectedEmployee.ten}</h3>
-          <FaceRecognition
+      {/* Chỉ cho phép đăng ký khi chưa có face-data hoặc đã xác nhận thay mới */}
+      {selectedEmployee && (!hasFaceData || allowOverride) && (
+        <div style={{ textAlign: 'center' }}>
+          <FaceRecognition 
             onRegisterFace={handleRegisterFace}
             mode="register"
             selectedEmployee={selectedEmployee}
-            disabled={isRegistering || isProcessing}
+            disabled={registrationStatus === 'processing'}
           />
         </div>
       )}
 
-      {/* Hướng dẫn */}
-      {!selectedEmployee && (
-        <div style={{ marginTop: '24px', padding: '16px', background: '#e6f7ff', borderRadius: '8px', border: '1px solid #91d5ff' }}>
-          <h3>📋 Hướng dẫn</h3>
-          <ol>
-            <li>Chọn nhân viên từ danh sách bên trên</li>
-            <li>Đảm bảo camera hoạt động bình thường</li>
-            <li>Đặt khuôn mặt vào khung hình</li>
-            <li>Chờ hệ thống nhận diện và đăng ký</li>
-            <li>Hoàn tất quá trình đăng ký</li>
-          </ol>
-        </div>
-      )}
+      <div style={{
+        marginTop: '30px',
+        padding: '20px',
+        backgroundColor: '#e9ecef',
+        borderRadius: '5px'
+      }}>
+        <h4 style={{ color: '#495057', marginBottom: '15px' }}>📋 Hướng dẫn:</h4>
+        <ul style={{ color: '#6c757d', lineHeight: '1.6' }}>
+          <li>Chọn nhân viên cần đăng ký khuôn mặt</li>
+          <li>Đảm bảo ánh sáng đủ và khuôn mặt rõ nét</li>
+          <li>Nhìn thẳng vào camera và giữ yên</li>
+          <li>Chờ thanh tiến trình hoàn thành</li>
+          <li>Mỗi nhân viên chỉ đăng ký một lần</li>
+        </ul>
+      </div>
     </div>
   );
 };

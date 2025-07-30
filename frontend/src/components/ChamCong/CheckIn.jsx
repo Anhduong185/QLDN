@@ -10,23 +10,12 @@ const CheckIn = () => {
   const [message, setMessage] = useState('');
   const [checkInStatus, setCheckInStatus] = useState('idle');
   const [lastCheckIn, setLastCheckIn] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckIn = useCallback(async (faceDescriptor) => {
-    // Ngăn chặn double call
-    if (isProcessing) {
-      console.log('🔍 CheckIn: Already processing, skipping...');
-      return;
-    }
-
-    console.log('🔍 CheckIn: handleCheckIn called', new Date().toISOString());
-    setIsProcessing(true);
     setCheckInStatus('processing');
     setMessage('');
-    
     try {
       const result = await chamCongService.checkIn({ face_descriptor: Array.from(faceDescriptor) });
-      console.log('🔍 CheckIn: API response', result);
       if (result.success) {
         setCheckInStatus('success');
         setLastCheckIn(result.data);
@@ -36,7 +25,6 @@ const CheckIn = () => {
         setMessage(result.message || 'Không nhận diện được khuôn mặt');
       }
     } catch (e) {
-      console.error('🔍 CheckIn: Error', e);
       setCheckInStatus('error');
       let msg = e.message;
       try {
@@ -55,10 +43,8 @@ const CheckIn = () => {
         }
       } catch {}
       setMessage(msg || 'Lỗi hệ thống');
-    } finally {
-      setIsProcessing(false);
     }
-  }, [isProcessing]);
+  }, []);
 
   return (
     <Card
@@ -114,7 +100,7 @@ const CheckIn = () => {
         <FaceRecognition
           onCheckIn={handleCheckIn}
           mode="checkin"
-          disabled={checkInStatus === 'processing' || isProcessing}
+          disabled={checkInStatus === 'processing'}
         />
 
         <Card
@@ -123,8 +109,9 @@ const CheckIn = () => {
           bodyStyle={{ padding: 12 }}
         >
           <Text strong>🕐 Thời gian hiện tại:</Text>
-          <br />
-          <Text>{new Date().toLocaleString('vi-VN')}</Text>
+          <div style={{ fontSize: 20, color: '#007bff', fontWeight: 700 }}>
+            {new Date().toLocaleString('vi-VN')}
+          </div>
         </Card>
       </Space>
     </Card>
