@@ -13,8 +13,9 @@ import RegisterFace from '../ChamCong/RegisterFace';
 import AiDashboard from '../AiAnalysis/AiDashboard';
 import StatisticsDashboard from '../Statistics/StatisticsDashboard';
 import NhanVienList from '../NhanSu/NhanVienList';
+import AppHeader from '../common/Header';
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 const { Title } = Typography;
 
 const menuItems = [
@@ -37,39 +38,68 @@ const menuItems = [
 
 const MainLayout = () => {
   const [selectedKey, setSelectedKey] = useState('checkin');
+  const [collapsed, setCollapsed] = useState(false);
   const selected = menuItems.find(item => item.key === selectedKey);
+
+  const handleMenuSelect = (key) => {
+    setSelectedKey(key);
+  };
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" style={{ background: '#001529' }}>
-        <div style={{
-          height: 64, margin: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 8,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20
-        }}>
-          <span role="img" aria-label="logo">🕑</span> Chấm Công AI
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          onClick={e => setSelectedKey(e.key)}
-          items={menuItems.map(item => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label
-          }))}
-        />
-      </Sider>
+      {/* Header */}
+      <AppHeader onMenuSelect={handleMenuSelect} />
+      
       <Layout>
-        <Header style={{
-          background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px #f0f1f2'
+        {/* Sidebar */}
+        <Sider 
+          breakpoint="lg" 
+          collapsedWidth="0" 
+          style={{ background: '#001529' }}
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+        >
+          <div style={{
+            height: 64, 
+            margin: 16, 
+            background: 'rgba(255,255,255,0.1)', 
+            borderRadius: 8,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: '#fff', 
+            fontWeight: 700, 
+            fontSize: 20
+          }}>
+            <span role="img" aria-label="logo">🕑</span> Chấm Công AI
+          </div>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            onClick={e => setSelectedKey(e.key)}
+            items={menuItems.map(item => ({
+              key: item.key,
+              icon: item.icon,
+              label: item.label
+            }))}
+          />
+        </Sider>
+        
+        {/* Main Content */}
+        <Content style={{ 
+          margin: '24px', 
+          padding: '24px', 
+          background: '#fff', 
+          borderRadius: '8px',
+          minHeight: 'calc(100vh - 112px)',
+          overflow: 'auto'
         }}>
-          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            {selected.label}
-          </Title>
-        </Header>
-        <Content style={{ margin: '24px', minHeight: 280 }}>
-          {selected.component}
+          {selected?.component}
         </Content>
       </Layout>
     </Layout>
