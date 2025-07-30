@@ -25,6 +25,7 @@ const mainMenuItems = [
     label: "Quản lý nhân sự",
     children: [
       { key: "danh-sach-nhan-vien", label: "Danh sách nhân viên" },
+      { key: "excel-import", label: "AI Import Excel" },
       { key: "phong-ban", label: "Phòng ban" },
       { key: "chuc-vu", label: "Chức vụ" },
       { key: "hop-dong", label: "Hợp đồng" },
@@ -113,7 +114,7 @@ const notificationMenu = (
 );
 
 const AppHeader = ({ onMenuSelect }) => {
-  const [selectedKeys, setSelectedKeys] = useState(["cham-cong"]);
+  const [selectedKeys, setSelectedKeys] = useState(["nhan-su"]); // Thay đổi từ "cham-cong" thành "nhan-su"
 
   const handleMenuClick = ({ key }) => {
     setSelectedKeys([key]);

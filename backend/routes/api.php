@@ -3,6 +3,8 @@
 use App\Http\Controllers\NhanVienController;
 use App\Http\Controllers\ChamCongController;
 use App\Http\Controllers\DonNghiPhepController;
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ExcelImportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +22,10 @@ Route::prefix('nhan-vien')->group(function () {
     Route::put('/{id}', [NhanVienController::class, 'update']);
     Route::delete('/{id}', [NhanVienController::class, 'destroy']);
 });
+
+// Excel Import Routes
+Route::post('/excel-import/nhan-vien', [ExcelImportController::class, 'importWithAI']);
+Route::get('/excel-import/template', [ExcelImportController::class, 'getTemplate']);
 
 // API routes cho chấm công
 Route::prefix('cham-cong')->group(function () {
@@ -63,6 +69,15 @@ Route::prefix('statistics')->group(function () {
     Route::get('/attendance-stats', [App\Http\Controllers\StatisticsController::class, 'getAttendanceStats']);
     Route::get('/leave-stats', [App\Http\Controllers\StatisticsController::class, 'getLeaveStats']);
     Route::get('/advanced-ai-stats', [App\Http\Controllers\StatisticsController::class, 'getAdvancedAIStats']);
+});
+
+// Chatbot Routes
+Route::prefix('chatbot')->group(function () {
+    Route::get('/test', [ChatbotController::class, 'test']);
+    Route::post('/gemini', [ChatbotController::class, 'chatWithGemini']);
+    Route::get('/status', [ChatbotController::class, 'getStatus']);
+    Route::post('/switch-model', [ChatbotController::class, 'switchModel']);
+    Route::get('/models', [ChatbotController::class, 'getAvailableModels']);
 });
 
 

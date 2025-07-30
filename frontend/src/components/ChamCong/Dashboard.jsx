@@ -30,7 +30,6 @@ const Dashboard = () => {
     chamCongService
       .getDashboard({})
       .then((res) => {
-        console.log('Dashboard API raw:', res);
         setDashboardData(res.data || {});
       })
       .catch((error) => {

@@ -14,7 +14,6 @@ const CheckIn = () => {
 
   const handleCheckIn = useCallback(async (faceDescriptor) => {
     if (isProcessing) {
-      console.log('🔍 CheckIn: Already processing, skipping...');
       return;
     }
     setIsProcessing(true);
