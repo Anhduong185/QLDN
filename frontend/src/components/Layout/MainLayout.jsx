@@ -10,12 +10,16 @@ import RegisterFace from '../ChamCong/RegisterFace';
 import AiDashboard from '../AiAnalysis/AiDashboard';
 import StatisticsDashboard from '../Statistics/StatisticsDashboard';
 import NhanVienList from '../NhanSu/NhanVienList';
+import ExcelImportManager from '../ExcelImport/ExcelImportManager';
+import ChatbotWidget from '../Chatbot/ChatbotWidget';
 import AppHeader from '../common/Header';
 
 const { Content } = Layout;
 const { Title } = Typography;
 
 const menuItems = [
+  { key: 'nhanvien', label: 'Quản lý nhân viên', component: <NhanVienList /> },
+  { key: 'excel-import', label: 'AI Import Excel', component: <ExcelImportManager /> },
   { key: 'checkin', label: 'Chấm công', component: <CheckIn /> },
   { key: 'accesslog', label: 'Lịch sử ra/vào', component: <AccessLog /> },
   { key: 'dashboard', label: 'Dashboard', component: <Dashboard /> },
@@ -28,27 +32,27 @@ const menuItems = [
     )
   },
   { key: 'export', label: 'Xuất Excel', component: <ExportExcel /> },
-  { key: 'nhanvien', label: 'Quản lý nhân viên', component: <NhanVienList /> },
   { key: 'ai-dashboard', label: 'AI Phân Tích', component: <AiDashboard /> },
   { key: 'statistics', label: 'Thống Kê', component: <StatisticsDashboard /> }
 ];
 
 const MainLayout = () => {
-  const [selectedKey, setSelectedKey] = useState('checkin');
+  const [selectedKey, setSelectedKey] = useState('nhanvien'); // Thay đổi từ 'checkin' thành 'nhanvien'
   const selected = menuItems.find(item => item.key === selectedKey);
 
   const handleMenuSelect = (key) => {
     // Map header menu keys to component keys
     const keyMapping = {
       'check-in': 'checkin',
-      'lich-su-cham-cong': 'accesslog',
+      'access-logs': 'accesslog',
       'dashboard': 'dashboard',
-      'dang-ky-khuon-mat': 'registerface',
+      'register-face': 'registerface',
       'nghi-phep': 'nghiphep',
       'export': 'export',
       'danh-sach-nhan-vien': 'nhanvien',
       'ai-analysis': 'ai-dashboard',
       'thong-ke': 'statistics',
+      'excel-import': 'excel-import',
       // Default mappings
       'cham-cong': 'checkin',
       'nhan-su': 'nhanvien',
@@ -75,6 +79,9 @@ const MainLayout = () => {
       }}>
         {selected?.component}
       </Content>
+
+      {/* Chatbot Widget */}
+      <ChatbotWidget />
     </Layout>
   );
 };

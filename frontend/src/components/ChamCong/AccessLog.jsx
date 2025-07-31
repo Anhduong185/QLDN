@@ -17,7 +17,6 @@ const AccessLog = () => {
     setLoading(true);
     chamCongService.getAccessLogs({})
       .then(res => {
-        console.log('AccessLog API raw:', res);
         setLogs(res.data || []);
       })
       .finally(() => setLoading(false));

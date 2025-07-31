@@ -79,6 +79,8 @@ const NhanVienForm = ({ mode, nhanVien, formData, onSuccess, onCancel }) => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
+      console.log('Form values:', values);
+      
       // Xử lý dữ liệu trước khi gửi
       const formData = new FormData();
 
@@ -87,6 +89,9 @@ const NhanVienForm = ({ mode, nhanVien, formData, onSuccess, onCancel }) => {
         if (values[key] !== undefined && values[key] !== null) {
           if (key === "ngay_sinh" || key === "ngay_vao_lam") {
             formData.append(key, values[key].format("YYYY-MM-DD"));
+          } else if (key === "trang_thai") {
+            // Chuyển đổi boolean thành integer
+            formData.append(key, values[key] ? "1" : "0");
           } else {
             formData.append(key, values[key]);
           }
@@ -98,12 +103,21 @@ const NhanVienForm = ({ mode, nhanVien, formData, onSuccess, onCancel }) => {
         formData.append("anh_dai_dien", fileList[0].originFileObj);
       }
 
+      console.log('FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
       let response;
       if (mode === "add") {
+        console.log('Creating new employee...');
         response = await nhanVienService.create(formData);
       } else {
+        console.log('Updating employee...');
         response = await nhanVienService.update(nhanVien.id, formData);
       }
+
+      console.log('API Response:', response);
 
       if (response.success) {
         message.success(
@@ -112,16 +126,24 @@ const NhanVienForm = ({ mode, nhanVien, formData, onSuccess, onCancel }) => {
             : "Cập nhật nhân viên thành công"
         );
         onSuccess();
+      } else {
+        message.error(response.message || 'Có lỗi xảy ra');
       }
     } catch (error) {
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        Object.keys(errors).forEach((key) => {
-          message.error(errors[key][0]);
+      console.error("Error in handleSubmit:", error);
+
+      // Kiểm tra xem có phải là lỗi validation không
+      if (error.status === 422 && error.response && error.response.errors) {
+        Object.keys(error.response.errors).forEach((key) => {
+          message.error(error.response.errors[key][0]);
         });
-      } else {
-        message.error("Có lỗi xảy ra khi lưu thông tin nhân viên");
+        return;
       }
+
+      // Hiển thị lỗi chung
+      message.error(
+        "Có lỗi xảy ra khi lưu thông tin nhân viên: " + error.message
+      );
     } finally {
       setLoading(false);
     }

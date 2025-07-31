@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test API</title>
+  </head>
+  <body>
+    <h1>Test API</h1>
+    <button onclick="testGet()">Test GET</button>
+    <button onclick="testPost()">Test POST</button>
+    <div id="result"></div>
+
+    <script>
+      const API_BASE_URL = "http://localhost:8000/api";
+
+      async function testGet() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/nhan-vien`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          });
+
+          const result = await response.json();
+          document.getElementById("result").innerHTML =
+            "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+        } catch (error) {
+          document.getElementById("result").innerHTML =
+            "<pre>Error: " + error.message + "</pre>";
+        }
+      }
+
+      async function testPost() {
+        try {
+          const formData = new FormData();
+          formData.append("ma_nhan_vien", "NV004");
+          formData.append("ten", "Test User");
+          formData.append("email", "test@example.com");
+          formData.append("so_dien_thoai", "0123456789");
+          formData.append("gioi_tinh", "nam");
+          formData.append("ngay_sinh", "1990-01-01");
+          formData.append("dia_chi", "Test Address");
+          formData.append("phong_ban_id", "1");
+          formData.append("chuc_vu_id", "1");
+          formData.append("ngay_vao_lam", "2024-01-01");
+          formData.append("luong_co_ban", "15000000");
+          formData.append("trang_thai", "1");
+
+          const response = await fetch(`${API_BASE_URL}/nhan-vien`, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+            },
+            body: formData,
+          });
+
+          const result = await response.json();
+          document.getElementById("result").innerHTML =
+            "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+        } catch (error) {
+          document.getElementById("result").innerHTML =
+            "<pre>Error: " + error.message + "</pre>";
+        }
+      }
+    </script>
+  </body>
+</html>

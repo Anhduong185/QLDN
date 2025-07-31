@@ -8,6 +8,7 @@ use App\Models\ChucVu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class NhanVienController extends Controller
@@ -89,6 +90,8 @@ class NhanVienController extends Controller
     public function store(Request $request)
     {
         try {
+            Log::info('Creating employee with data:', $request->all());
+            
             $validator = Validator::make($request->all(), [
                 'ma_nhan_vien' => 'required|string|max:20|unique:nhan_vien,ma_nhan_vien',
                 'ten' => 'required|string|max:255',
@@ -132,6 +135,7 @@ class NhanVienController extends Controller
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed:', $validator->errors()->toArray());
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -141,15 +145,25 @@ class NhanVienController extends Controller
 
             $data = $request->all();
             $data['trang_thai'] = $request->get('trang_thai', 1); // Mặc định là đang làm việc
+            
+            // Chuyển đổi trang_thai từ string thành integer
+            if (isset($data['trang_thai'])) {
+                if (is_string($data['trang_thai'])) {
+                    $data['trang_thai'] = in_array(strtolower($data['trang_thai']), ['1', 'true', 'on'], true) ? 1 : 0;
+                } else {
+                    $data['trang_thai'] = $data['trang_thai'] ? 1 : 0;
+                }
+            }
 
             // Xử lý upload ảnh đại diện
             if ($request->hasFile('anh_dai_dien')) {
                 $file = $request->file('anh_dai_dien');
                 $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $filePath = $file->storeAs('public/nhan-vien', $fileName);
+                $filePath = $file->storeAs('public/image_uploads', $fileName);
                 $data['anh_dai_dien'] = $filePath;
             }
 
+            Log::info('Creating employee with processed data:', $data);
             $nhanVien = NhanVien::create($data);
 
             return response()->json([
@@ -159,6 +173,7 @@ class NhanVienController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            Log::error('Error creating employee:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi thêm nhân viên: ' . $e->getMessage()
@@ -170,6 +185,8 @@ class NhanVienController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            Log::info('Updating employee with data:', $request->all());
+            
             $nhanVien = NhanVien::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
@@ -215,6 +232,7 @@ class NhanVienController extends Controller
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed for update:', $validator->errors()->toArray());
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -223,6 +241,15 @@ class NhanVienController extends Controller
             }
 
             $data = $request->all();
+
+            // Chuyển đổi trang_thai từ string thành integer
+            if (isset($data['trang_thai'])) {
+                if (is_string($data['trang_thai'])) {
+                    $data['trang_thai'] = in_array(strtolower($data['trang_thai']), ['1', 'true', 'on'], true) ? 1 : 0;
+                } else {
+                    $data['trang_thai'] = $data['trang_thai'] ? 1 : 0;
+                }
+            }
 
             // Xử lý upload ảnh đại diện mới
             if ($request->hasFile('anh_dai_dien')) {
@@ -237,6 +264,7 @@ class NhanVienController extends Controller
                 $data['anh_dai_dien'] = $filePath;
             }
 
+            Log::info('Updating employee with processed data:', $data);
             $nhanVien->update($data);
 
             return response()->json([
@@ -246,6 +274,7 @@ class NhanVienController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Error updating employee:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật nhân viên: ' . $e->getMessage()
