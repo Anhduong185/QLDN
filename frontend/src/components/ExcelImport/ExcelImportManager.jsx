@@ -104,17 +104,35 @@ const ExcelImportManager = () => {
 
   const downloadTemplate = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/excel-import/template');
-      const data = await response.json();
+      // Download Excel template với encoding UTF-8 BOM
+      const response = await fetch('http://localhost:8000/api/excel-import/download-template');
       
-      if (data.success) {
-        // Create CSV content
-        const headers = data.template.headers.join(',');
-        const sampleRow = data.template.sample_data[0].join(',');
-        const csvContent = `${headers}\n${sampleRow}`;
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'template_nhan_vien.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
         
-        // Download file
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        message.success('Đã tải template Excel với encoding UTF-8!');
+      } else {
+        message.error('Lỗi tải template');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Lỗi tải template');
+    }
+  };
+
+  const downloadCsvTemplate = async () => {
+    try {
+      // Download CSV template với encoding UTF-8 BOM
+      const response = await fetch('http://localhost:8000/api/excel-import/download-csv-template');
+      
+      if (response.ok) {
+        const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -122,10 +140,13 @@ const ExcelImportManager = () => {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        message.success('Đã tải template!');
+        message.success('Đã tải template CSV với encoding UTF-8!');
+      } else {
+        message.error('Lỗi tải template CSV');
       }
     } catch (error) {
-      message.error('Lỗi tải template');
+      console.error('Download CSV error:', error);
+      message.error('Lỗi tải template CSV');
     }
   };
 
@@ -198,16 +219,25 @@ const ExcelImportManager = () => {
               <li>Hệ thống validate và tạo nhân viên tự động</li>
               <li>Hỗ trợ format: .xlsx, .xls, .csv, .txt</li>
               <li>File size tối đa: 10MB</li>
+              <li>⚠️ Lưu ý: Sử dụng template có sẵn để tránh lỗi encoding</li>
             </ul>
           </div>
 
-          <Button 
-            type="primary" 
-            icon={<DownloadOutlined />}
-            onClick={downloadTemplate}
-          >
-            Tải Template Excel
-          </Button>
+          <Space>
+            <Button 
+              type="primary" 
+              icon={<DownloadOutlined />}
+              onClick={downloadTemplate}
+            >
+              Tải Template Excel (.xlsx)
+            </Button>
+            <Button 
+              icon={<DownloadOutlined />}
+              onClick={downloadCsvTemplate}
+            >
+              Tải Template CSV (.csv)
+            </Button>
+          </Space>
 
           <Dragger {...uploadProps} disabled={importing}>
             <p className="ant-upload-drag-icon">

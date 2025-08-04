@@ -63,7 +63,7 @@ const Dashboard = () => {
   const topNhanVienColumns = [
     { title: 'Tên nhân viên', dataIndex: 'ten', key: 'ten' },
     { title: 'Phòng ban', dataIndex: 'phong_ban', key: 'phong_ban' },
-    { title: 'Đúng giờ', dataIndex: 'dung_gio', key: 'dung_gio' },
+    { title: 'Có mặt', dataIndex: 'dung_gio', key: 'dung_gio' },
     { title: 'Tổng ngày', dataIndex: 'tong_ngay', key: 'tong_ngay' },
     {
       title: 'Tỷ lệ',
@@ -127,7 +127,7 @@ const Dashboard = () => {
           <Card>
             <Statistic
               title="Vắng mặt"
-              value={tong_quan?.vang_mat || 0}
+              value={hom_nay?.vang_mat || 0}
               prefix={<ExclamationCircleOutlined />}
               valueStyle={{ color: '#cf1322' }}
             />
@@ -140,18 +140,46 @@ const Dashboard = () => {
         <Col xs={24} lg={12}>
           <Card title="📊 Thống Kê Theo Trạng Thái">
             <Row gutter={[8, 8]}>
-              {Array.isArray(theo_trang_thai) && theo_trang_thai.map((item, index) => (
-                <Col xs={12} sm={8} key={index}>
-                  <Card size="small">
-                    <Statistic
-                      title={item.trang_thai}
-                      value={item.so_luong}
-                      valueStyle={{ color: item.color || '#1890ff' }}
-                    />
-                  </Card>
-                </Col>
-              ))}
-              {!Array.isArray(theo_trang_thai) && (
+              {theo_trang_thai && typeof theo_trang_thai === 'object' ? (
+                <>
+                  <Col xs={12} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Có mặt"
+                        value={theo_trang_thai.co_mat || 0}
+                        valueStyle={{ color: '#3f8600' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Đi muộn"
+                        value={theo_trang_thai.tre || 0}
+                        valueStyle={{ color: '#faad14' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Về sớm"
+                        value={theo_trang_thai.som || 0}
+                        valueStyle={{ color: '#1890ff' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Vắng mặt"
+                        value={theo_trang_thai.vang_mat || 0}
+                        valueStyle={{ color: '#cf1322' }}
+                      />
+                    </Card>
+                  </Col>
+                </>
+              ) : (
                 <Col span={24}>
                   <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
                     Chưa có dữ liệu thống kê theo trạng thái
@@ -164,18 +192,19 @@ const Dashboard = () => {
         <Col xs={24} lg={12}>
           <Card title="🏢 Thống Kê Theo Phòng Ban">
             <Row gutter={[8, 8]}>
-              {Array.isArray(theo_phong_ban) && theo_phong_ban.map((item, index) => (
-                <Col xs={12} sm={8} key={index}>
-                  <Card size="small">
-                    <Statistic
-                      title={item.phong_ban}
-                      value={item.so_luong}
-                      valueStyle={{ color: '#52c41a' }}
-                    />
-                  </Card>
-                </Col>
-              ))}
-              {!Array.isArray(theo_phong_ban) && (
+              {Array.isArray(theo_phong_ban) && theo_phong_ban.length > 0 ? (
+                theo_phong_ban.map((item, index) => (
+                  <Col xs={12} sm={8} key={index}>
+                    <Card size="small">
+                      <Statistic
+                        title={item.phong_ban}
+                        value={item.tong_ngay}
+                        valueStyle={{ color: '#52c41a' }}
+                      />
+                    </Card>
+                  </Col>
+                ))
+              ) : (
                 <Col span={24}>
                   <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
                     Chưa có dữ liệu thống kê theo phòng ban
@@ -193,7 +222,7 @@ const Dashboard = () => {
           <Card>
             <Statistic
               title="Hôm nay"
-              value={hom_nay?.tong || 0}
+              value={hom_nay?.cham_cong || 0}
               prefix={<CalendarOutlined />}
             />
           </Card>
@@ -202,7 +231,7 @@ const Dashboard = () => {
           <Card>
             <Statistic
               title="Tuần này"
-              value={tuan_nay?.tong || 0}
+              value={tuan_nay || 0}
               prefix={<CalendarOutlined />}
             />
           </Card>
@@ -211,7 +240,7 @@ const Dashboard = () => {
           <Card>
             <Statistic
               title="Tháng này"
-              value={thang_nay?.tong || 0}
+              value={thang_nay || 0}
               prefix={<CalendarOutlined />}
             />
           </Card>

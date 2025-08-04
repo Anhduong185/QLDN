@@ -86,13 +86,18 @@ const CheckIn = () => {
             title="Chấm công thành công!"
             subTitle={
               <Space direction="vertical" size={0}>
-                <Text strong>👤 Nhân viên: {lastCheckIn.nhan_vien.ten}</Text>
+                <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
+                  👤 {lastCheckIn.nhan_vien.ten}
+                </Text>
                 <Text>🆔 Mã NV: {lastCheckIn.nhan_vien.ma_nhan_vien}</Text>
-                <Text>📅 Ngày: {lastCheckIn.ngay || '-'}</Text>
+                <Text>📧 Email: {lastCheckIn.nhan_vien.email}</Text>
+                <Text>📅 Ngày: {new Date().toLocaleDateString('vi-VN')}</Text>
                 <Text>⏰ Giờ vào: {lastCheckIn.gio_vao || '-'}</Text>
                 <Text>⏰ Giờ ra: {lastCheckIn.gio_ra || '-'}</Text>
-                <Text type="success">
-                  ✅ Trạng thái: {lastCheckIn.trang_thai || '-'}
+                <Text type="success" style={{ fontWeight: 'bold' }}>
+                  ✅ Trạng thái: {lastCheckIn.trang_thai === 'co_mat' ? 'Có mặt' : 
+                                  lastCheckIn.trang_thai === 'tre' ? 'Đi muộn' :
+                                  lastCheckIn.trang_thai === 'som' ? 'Về sớm' : lastCheckIn.trang_thai}
                 </Text>
               </Space>
             }

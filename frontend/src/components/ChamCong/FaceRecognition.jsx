@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
+import { chamCongService } from '../../services/chamCongService';
 
 const FaceRecognition = ({ onRegisterFace, onCheckIn, mode, selectedEmployee, disabled = false }) => {
   const videoRef = useRef();
@@ -12,6 +13,7 @@ const FaceRecognition = ({ onRegisterFace, onCheckIn, mode, selectedEmployee, di
   const [scanningProgress, setScanningProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [identifiedEmployee, setIdentifiedEmployee] = useState(null);
 
   useEffect(() => {
     modeRef.current = mode;
@@ -112,6 +114,20 @@ const FaceRecognition = ({ onRegisterFace, onCheckIn, mode, selectedEmployee, di
 
       if (detections.length > 0) {
         setFaceDetected(true);
+        
+        // Nhận diện khuôn mặt ngay khi phát hiện
+        if (modeRef.current === 'checkin' && !identifiedEmployee && !isProcessing) {
+          const faceDescriptor = detections[0].descriptor;
+          try {
+            const result = await chamCongService.identifyFace({ face_descriptor: Array.from(faceDescriptor) });
+            if (result.success && result.data.identified) {
+              setIdentifiedEmployee(result.data.nhan_vien);
+            }
+          } catch (error) {
+            console.error('❌ Lỗi nhận diện khuôn mặt:', error);
+          }
+        }
+
         setIsProcessing(true);
 
         setScanningProgress(prev => {
@@ -146,6 +162,7 @@ const FaceRecognition = ({ onRegisterFace, onCheckIn, mode, selectedEmployee, di
         });
       } else {
         setFaceDetected(false);
+        setIdentifiedEmployee(null);
         setScanningProgress(0);
         setIsProcessing(false);
       }
@@ -214,6 +231,33 @@ const FaceRecognition = ({ onRegisterFace, onCheckIn, mode, selectedEmployee, di
          disabled ? '⏸️ Tạm dừng' :
          faceDetected ? '✅ Đã phát hiện khuôn mặt' : '❌ Không phát hiện'}
       </div>
+
+      {identifiedEmployee && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          backgroundColor: 'rgba(40, 167, 69, 0.9)',
+          color: 'white',
+          padding: '8px 12px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          maxWidth: '200px',
+          textAlign: 'center'
+        }}>
+          👤 {identifiedEmployee.ten}
+          <br />
+          <span style={{ fontSize: '12px', opacity: 0.9 }}>
+            {identifiedEmployee.ma_nhan_vien}
+          </span>
+          {identifiedEmployee.confidence && (
+            <div style={{ fontSize: '11px', marginTop: '2px' }}>
+              Độ tin cậy: {identifiedEmployee.confidence}%
+            </div>
+          )}
+        </div>
+      )}
 
       {scanningProgress > 0 && (
         <div style={{
