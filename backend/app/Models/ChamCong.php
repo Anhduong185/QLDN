@@ -33,7 +33,8 @@ protected $casts = [
     'gio_vao' => 'datetime:H:i:s',
     'gio_ra' => 'datetime:H:i:s',
     'gio_lam_thuc_te' => 'decimal:2',
-    'gio_tang_ca' => 'decimal:2'
+    'gio_tang_ca' => 'decimal:2',
+    'trang_thai' => 'string'
 ];
     public function nhanVien()
     {

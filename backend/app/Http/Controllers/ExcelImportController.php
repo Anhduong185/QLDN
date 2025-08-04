@@ -470,4 +470,183 @@ class ExcelImportController extends Controller
             'template' => $template
         ]);
     }
+
+    /**
+     * Download Excel template với encoding UTF-8 BOM
+     */
+    public function downloadTemplate()
+    {
+        try {
+            // Tạo dữ liệu template
+            $headers = [
+                'Mã nhân viên',
+                'Tên nhân viên', 
+                'Email',
+                'Số điện thoại',
+                'Ngày sinh',
+                'Giới tính',
+                'Phòng ban',
+                'Chức vụ',
+                'Lương cơ bản'
+            ];
+
+            $sampleData = [
+                [
+                    'NV001',
+                    'Nguyễn Văn A',
+                    'nva@company.com',
+                    '0123456789',
+                    '1990-01-01',
+                    'Nam',
+                    'IT',
+                    'Nhân viên',
+                    '15000000'
+                ]
+            ];
+
+            // Tạo file Excel với encoding UTF-8 BOM
+            $filename = 'template_nhan_vien_' . date('Y-m-d_H-i-s') . '.xlsx';
+            
+            return Excel::download(new class($headers, $sampleData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithStyles, \Maatwebsite\Excel\Concerns\WithColumnWidths {
+                private $headers;
+                private $sampleData;
+
+                public function __construct($headers, $sampleData)
+                {
+                    $this->headers = $headers;
+                    $this->sampleData = $sampleData;
+                }
+
+                public function array(): array
+                {
+                    return $this->sampleData;
+                }
+
+                public function headings(): array
+                {
+                    return $this->headers;
+                }
+
+                public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
+                {
+                    return [
+                        1 => [
+                            'font' => [
+                                'bold' => true,
+                                'color' => ['rgb' => 'FFFFFF']
+                            ],
+                            'fill' => [
+                                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                                'startColor' => ['rgb' => '4472C4']
+                            ],
+                            'alignment' => [
+                                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
+                            ]
+                        ]
+                    ];
+                }
+
+                public function columnWidths(): array
+                {
+                    return [
+                        'A' => 15, // Mã nhân viên
+                        'B' => 25, // Tên nhân viên
+                        'C' => 25, // Email
+                        'D' => 15, // Số điện thoại
+                        'E' => 15, // Ngày sinh
+                        'F' => 10, // Giới tính
+                        'G' => 15, // Phòng ban
+                        'H' => 15, // Chức vụ
+                        'I' => 15  // Lương cơ bản
+                    ];
+                }
+            }, $filename, \Maatwebsite\Excel\Excel::XLSX, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Template download error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi tạo template: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download CSV template với encoding UTF-8 BOM
+     */
+    public function downloadCsvTemplate()
+    {
+        try {
+            // Tạo dữ liệu template
+            $headers = [
+                'Mã nhân viên',
+                'Tên nhân viên', 
+                'Email',
+                'Số điện thoại',
+                'Ngày sinh',
+                'Giới tính',
+                'Phòng ban',
+                'Chức vụ',
+                'Lương cơ bản'
+            ];
+
+            $sampleData = [
+                [
+                    'NV001',
+                    'Nguyễn Văn A',
+                    'nva@company.com',
+                    '0123456789',
+                    '1990-01-01',
+                    'Nam',
+                    'IT',
+                    'Nhân viên',
+                    '15000000'
+                ],
+                [
+                    'NV002',
+                    'Trần Thị B',
+                    'ttb@company.com',
+                    '0987654321',
+                    '1985-05-15',
+                    'Nữ',
+                    'HR',
+                    'Trưởng phòng',
+                    '20000000'
+                ]
+            ];
+
+            $filename = 'template_nhan_vien_' . date('Y-m-d_H-i-s') . '.csv';
+            
+            // Tạo CSV với UTF-8 BOM
+            $csvContent = "\xEF\xBB\xBF"; // UTF-8 BOM
+            $csvContent .= implode(',', $headers) . "\n";
+            
+            foreach ($sampleData as $row) {
+                $csvContent .= implode(',', array_map(function($field) {
+                    // Escape quotes và wrap trong quotes nếu có dấu phẩy
+                    $field = str_replace('"', '""', $field);
+                    if (strpos($field, ',') !== false || strpos($field, '"') !== false) {
+                        return '"' . $field . '"';
+                    }
+                    return $field;
+                }, $row)) . "\n";
+            }
+
+            return response($csvContent, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('CSV template download error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi tạo CSV template: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 

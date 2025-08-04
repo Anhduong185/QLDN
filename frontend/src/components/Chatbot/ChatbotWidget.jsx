@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, Input, Button, Avatar, Typography, Spin, message, Select, Tooltip } from 'antd';
-import { SendOutlined, RobotOutlined, UserOutlined, CloseOutlined, SettingOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Avatar, Typography, Spin, message, Select, Tooltip, Badge, Tag } from 'antd';
+import { SendOutlined, RobotOutlined, UserOutlined, CloseOutlined, SettingOutlined, BarChartOutlined, HistoryOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -14,6 +14,8 @@ const ChatbotWidget = () => {
   const [currentModel, setCurrentModel] = useState('gemini-pro');
   const [availableModels, setAvailableModels] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [systemStats, setSystemStats] = useState(null);
+  const [contextUsed, setContextUsed] = useState('general');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -24,10 +26,11 @@ const ChatbotWidget = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Load available models on component mount
+  // Load available models and system stats on component mount
   useEffect(() => {
     if (isOpen) {
       loadAvailableModels();
+      loadSystemStats();
     }
   }, [isOpen]);
 
@@ -42,6 +45,19 @@ const ChatbotWidget = () => {
       }
     } catch (error) {
       console.error('Error loading models:', error);
+    }
+  };
+
+  const loadSystemStats = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/chatbot/stats');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSystemStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error loading system stats:', error);
     }
   };
 
@@ -68,19 +84,25 @@ const ChatbotWidget = () => {
     }
   };
 
-  // Welcome message
+  // Welcome message with system stats
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      let welcomeMessage = 'Xin chào! Tôi là AI Assistant thông minh của hệ thống QLNS. Tôi có thể:\n\n• Truy cập dữ liệu thực từ hệ thống\n• Học từ lịch sử hội thoại\n• Phân tích thống kê nhân sự\n• Hướng dẫn sử dụng hệ thống\n\nBạn có thể hỏi tôi bất cứ điều gì!';
+      
+      if (systemStats) {
+        welcomeMessage += `\n\n📊 Thống kê hệ thống:\n• Nhân viên: ${systemStats.employees?.total || 0}\n• Chấm công hôm nay: ${systemStats.attendance?.today || 0}\n• Đơn nghỉ chờ duyệt: ${systemStats.leave?.pending || 0}`;
+      }
+
       setMessages([
         {
           id: 1,
           type: 'bot',
-          content: 'Xin chào! Tôi là AI Assistant của hệ thống QLNS. Tôi có thể giúp bạn:\n\n• Tìm hiểu về chấm công\n• Hướng dẫn sử dụng hệ thống\n• Phân tích dữ liệu nhân sự\n• Trả lời câu hỏi về quy trình\n\nBạn có thể hỏi tôi bất cứ điều gì!',
+          content: welcomeMessage,
           timestamp: new Date()
         }
       ]);
     }
-  }, [isOpen]);
+  }, [isOpen, systemStats]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -98,7 +120,7 @@ const ChatbotWidget = () => {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       const response = await fetch('http://localhost:8000/api/chatbot/gemini', {
         method: 'POST',
@@ -121,9 +143,11 @@ const ChatbotWidget = () => {
           id: Date.now() + 1,
           type: 'bot',
           content: data.response,
-          timestamp: new Date()
+          timestamp: new Date(),
+          contextUsed: data.context_used || 'general'
         };
         setMessages(prev => [...prev, botMessage]);
+        setContextUsed(data.context_used || 'general');
       } else {
         throw new Error(data.message || 'Lỗi kết nối');
       }
@@ -169,6 +193,28 @@ const ChatbotWidget = () => {
     setShowSettings(!showSettings);
   };
 
+  const getContextColor = (context) => {
+    const colors = {
+      'employee': 'blue',
+      'attendance': 'green',
+      'leave': 'orange',
+      'statistics': 'purple',
+      'general': 'default'
+    };
+    return colors[context] || 'default';
+  };
+
+  const getContextIcon = (context) => {
+    const icons = {
+      'employee': '👥',
+      'attendance': '⏰',
+      'leave': '📝',
+      'statistics': '📊',
+      'general': '🤖'
+    };
+    return icons[context] || '🤖';
+  };
+
   return (
     <>
       {/* Chatbot Toggle Button */}
@@ -198,8 +244,8 @@ const ChatbotWidget = () => {
             position: 'fixed',
             bottom: '100px',
             right: '20px',
-            width: '380px',
-            height: '550px',
+            width: '400px',
+            height: '600px',
             zIndex: 1000,
             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
             borderRadius: '12px',
@@ -233,9 +279,22 @@ const ChatbotWidget = () => {
                 <Text type="secondary" style={{ fontSize: '12px' }}>
                   Powered by {currentModel}
                 </Text>
+                {contextUsed !== 'general' && (
+                  <Tag color={getContextColor(contextUsed)} style={{ marginTop: '4px' }}>
+                    {getContextIcon(contextUsed)} {contextUsed}
+                  </Tag>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
+              <Tooltip title="Thống kê hệ thống">
+                <Button
+                  type="text"
+                  icon={<BarChartOutlined />}
+                  onClick={loadSystemStats}
+                  size="small"
+                />
+              </Tooltip>
               <Tooltip title="Cài đặt model">
                 <Button
                   type="text"
@@ -299,7 +358,7 @@ const ChatbotWidget = () => {
                 }}
               >
                 <div style={{
-                  maxWidth: '80%',
+                  maxWidth: '85%',
                   padding: '8px 12px',
                   borderRadius: '12px',
                   backgroundColor: msg.type === 'user' ? '#1890ff' : '#fff',
@@ -308,15 +367,22 @@ const ChatbotWidget = () => {
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word'
                 }}>
-                  <div style={{ marginBottom: '4px' }}>
-                    {msg.type === 'user' ? (
-                      <UserOutlined style={{ marginRight: '4px' }} />
-                    ) : (
-                      <RobotOutlined style={{ marginRight: '4px' }} />
+                  <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {msg.type === 'user' ? (
+                        <UserOutlined style={{ marginRight: '4px' }} />
+                      ) : (
+                        <RobotOutlined style={{ marginRight: '4px' }} />
+                      )}
+                      <Text style={{ fontSize: '12px', opacity: 0.7 }}>
+                        {msg.type === 'user' ? 'Bạn' : 'AI Assistant'}
+                      </Text>
+                    </div>
+                    {msg.contextUsed && msg.type === 'bot' && (
+                      <Tag size="small" color={getContextColor(msg.contextUsed)}>
+                        {getContextIcon(msg.contextUsed)}
+                      </Tag>
                     )}
-                    <Text style={{ fontSize: '12px', opacity: 0.7 }}>
-                      {msg.type === 'user' ? 'Bạn' : 'AI Assistant'}
-                    </Text>
                   </div>
                   <div>{msg.content}</div>
                   <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
@@ -339,7 +405,7 @@ const ChatbotWidget = () => {
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
                   <Spin size="small" />
-                  <Text style={{ marginLeft: '8px' }}>AI đang suy nghĩ...</Text>
+                  <Text style={{ marginLeft: '8px' }}>AI đang học và phân tích...</Text>
                 </div>
               </div>
             )}
@@ -353,7 +419,7 @@ const ChatbotWidget = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Nhập câu hỏi của bạn..."
+              placeholder="Nhập câu hỏi của bạn... (AI sẽ học từ hệ thống)"
               autoSize={{ minRows: 1, maxRows: 3 }}
               disabled={isLoading}
               style={{ flex: 1 }}

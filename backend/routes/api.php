@@ -26,12 +26,15 @@ Route::prefix('nhan-vien')->group(function () {
 // Excel Import Routes
 Route::post('/excel-import/nhan-vien', [ExcelImportController::class, 'importWithAI']);
 Route::get('/excel-import/template', [ExcelImportController::class, 'getTemplate']);
+Route::get('/excel-import/download-template', [ExcelImportController::class, 'downloadTemplate']);
+Route::get('/excel-import/download-csv-template', [ExcelImportController::class, 'downloadCsvTemplate']);
 
 // API routes cho chấm công
 Route::prefix('cham-cong')->group(function () {
     Route::post('/register-face', [ChamCongController::class, 'registerFace']);
     Route::post('/check-in', [ChamCongController::class, 'checkIn']);
     Route::post('/check-out', [ChamCongController::class, 'checkOut']);
+    Route::post('/identify-face', [ChamCongController::class, 'identifyFace']);
     Route::get('/history/{employeeId}', [ChamCongController::class, 'getAttendanceHistory']);
     Route::get('/all', [ChamCongController::class, 'getAllAttendance']);
     Route::get('/today', [ChamCongController::class, 'getTodayAttendance']);
@@ -78,6 +81,10 @@ Route::prefix('chatbot')->group(function () {
     Route::get('/status', [ChatbotController::class, 'getStatus']);
     Route::post('/switch-model', [ChatbotController::class, 'switchModel']);
     Route::get('/models', [ChatbotController::class, 'getAvailableModels']);
+    Route::get('/history', [ChatbotController::class, 'getConversationHistory']);
+    Route::get('/stats', [ChatbotController::class, 'getSystemStats']);
+    Route::post('/update-learning', [ChatbotController::class, 'updateLearningData']);
+    Route::get('/suggestions', [ChatbotController::class, 'getSmartSuggestions']);
 });
 
 

@@ -43,7 +43,12 @@ const NhanVienList = () => {
         fetchNhanViens();
         alert('Xóa nhân viên thành công!');
       } catch (error) {
-        alert('Có lỗi xảy ra khi xóa nhân viên');
+        // Hiển thị thông báo lỗi chi tiết hơn
+        if (error.message && error.message.includes('400')) {
+          alert('Không thể xóa nhân viên vì có dữ liệu chấm công liên quan. Vui lòng xóa dữ liệu chấm công trước.');
+        } else {
+          alert('Có lỗi xảy ra khi xóa nhân viên: ' + error.message);
+        }
         console.error('Error deleting employee:', error);
       }
     }
