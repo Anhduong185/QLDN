@@ -14,7 +14,9 @@ import os
 
 def load_processed_data():
     """Đọc dữ liệu đã được xử lý"""
-    data_path = 'data/nhan_su_processed.csv'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(os.path.dirname(script_dir), 'data')
+    data_path = os.path.join(data_dir, 'nhan_su_processed.csv')
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Không tìm thấy file {data_path}. Hãy chạy process_data.py trước!")
@@ -55,7 +57,8 @@ def prepare_features_and_labels(df):
     # Chuẩn hóa dữ liệu
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    X_scaled = pd.DataFrame(X_scaled, columns=X.columns, index=X.index)
+    # Tạo DataFrame với feature names để tránh warning
+    X_scaled = pd.DataFrame(X_scaled, columns=feature_columns, index=X.index)
     
     # Chuẩn bị labels
     if 'nghi_viec' in df.columns:

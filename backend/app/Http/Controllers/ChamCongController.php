@@ -21,7 +21,10 @@ class ChamCongController extends Controller
         $inputDescriptor = $request->face_descriptor;
         $nhanVien = $this->findNhanVienByFace($inputDescriptor);
         if (!$nhanVien) {
-            return response()->json(['success' => false, 'message' => 'Không nhận diện được khuôn mặt'], 400);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Không nhận diện được khuôn mặt. Vui lòng đăng ký khuôn mặt trước khi chấm công.'
+            ], 400);
         }
 
         $ca = $nhanVien->caLamViec ?? CaLamViec::first();
@@ -31,19 +34,6 @@ class ChamCongController extends Controller
 
         $today = now()->toDateString();
         $now = now();
-
-        // Kiểm tra đơn nghỉ phép đã duyệt
-        $donNghiPhep = DonNghiPhep::where('nhan_vien_id', $nhanVien->id)
-            ->where('ngay_nghi', $today)
-            ->where('trang_thai', 'da_duyet')
-            ->first();
-
-        if ($donNghiPhep) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Nhân viên đã có đơn nghỉ phép được duyệt cho ngày hôm nay. Không thể chấm công!'
-            ], 400);
-        }
 
         // 1. Ghi AccessLog mỗi lần quét, so le vào/ra
         $lastLog = AccessLog::where('nhan_vien_id', $nhanVien->id)
@@ -56,29 +46,17 @@ class ChamCongController extends Controller
             $eventType = 'ra';
         }
 
-        // Chỉ ghi log 'vao' nếu chưa có log 'vao' trong ngày/ca
-        $today = now()->toDateString();
-        $hasVaoLog = AccessLog::where('nhan_vien_id', $nhanVien->id)
-            ->whereDate('thoi_gian', $today)
-            ->where('loai_su_kien', 'vao')
-            ->exists();
-
         if (
-            $eventType === 'vao' && !$hasVaoLog ||
-            $eventType === 'ra'
+            (!$lastLog || $lastLog->loai_su_kien !== $eventType) &&
+            (!$lastLog || $now->diffInSeconds(Carbon::parse($lastLog->thoi_gian)) > 2)
         ) {
-            if (
-                (!$lastLog || $lastLog->loai_su_kien !== $eventType) &&
-                (!$lastLog || $now->diffInSeconds(Carbon::parse($lastLog->thoi_gian)) > 2)
-            ) {
-                AccessLog::create([
-                    'nhan_vien_id' => $nhanVien->id,
-                    'thoi_gian' => $now,
-                    'loai_su_kien' => $eventType,
-                    'vi_tri' => $request->input('vi_tri'),
-                    'ghi_chu' => $request->input('device_info')
-                ]);
-            }
+            AccessLog::create([
+                'nhan_vien_id' => $nhanVien->id,
+                'thoi_gian' => $now,
+                'loai_su_kien' => $eventType,
+                'vi_tri' => $request->input('vi_tri'),
+                'ghi_chu' => $request->input('device_info')
+            ]);
         }
 
         // 2. Xử lý bảng chấm công
@@ -89,29 +67,25 @@ class ChamCongController extends Controller
 
         if (!$chamCong && $eventType === 'vao') {
             // Lần đầu tiên: ghi giờ vào
-            $gioVao = Carbon::parse($now);
-            $gioBatDau = Carbon::parse($ca->gio_bat_dau);
-            $phutTre = max(0, $gioVao->diffInMinutes($gioBatDau, false));
-            
             $chamCong = ChamCong::create([
                 'nhan_vien_id' => $nhanVien->id,
                 'ca_lam_viec_id' => $ca->id,
                 'ngay' => $today,
                 'gio_vao' => $now->format('H:i:s'),
                 'trang_thai' => $this->tinhTrangThaiVao($nhanVien, $now, $ca),
-                'phut_tre' => $phutTre,
                 'ghi_chu' => 'Chấm công vào bằng khuôn mặt'
             ]);
         } else if ($chamCong && $eventType === 'ra') {
-            // Mỗi lần ra đều cập nhật lại giờ ra (lấy lần cuối cùng)
-            $gioRa = Carbon::parse($now);
-            $gioKetThuc = Carbon::parse($ca->gio_ket_thuc);
-            $phutSom = max(0, $gioKetThuc->diffInMinutes($gioRa, false));
+            // Cập nhật giờ ra và tính trạng thái tổng hợp
+            $trangThaiVao = $this->tinhTrangThaiVao($nhanVien, Carbon::parse($chamCong->gio_vao), $ca);
+            $trangThaiRa = $this->tinhTrangThaiRa($nhanVien, $now, $ca);
+            
+            // Tính trạng thái tổng hợp
+            $trangThaiTongHop = $this->tinhTrangThaiTongHop($trangThaiVao, $trangThaiRa);
             
             $chamCong->update([
                 'gio_ra' => $now->format('H:i:s'),
-                // Không cập nhật trạng thái khi ra!
-                'phut_som' => $phutSom,
+                'trang_thai' => $trangThaiTongHop,
                 'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
             ]);
         }
@@ -131,18 +105,167 @@ class ChamCongController extends Controller
     // 3. Dashboard tổng hợp chấm công
     public function dashboard(Request $request)
     {
-        $from = $request->input('from');
-        $to = $request->input('to');
-        $phongBanId = $request->input('phong_ban_id');
+        try {
+            $from = $request->input('from', now()->startOfMonth()->toDateString());
+            $to = $request->input('to', now()->endOfMonth()->toDateString());
+            $phongBanId = $request->input('phong_ban_id');
 
-        $query = ChamCong::with('nhanVien');
-        if ($from && $to) $query->whereBetween('ngay', [$from, $to]);
-        if ($phongBanId) $query->whereHas('nhanVien', fn($q) => $q->where('phong_ban_id', $phongBanId));
-        $data = $query->get();
+            // Query cơ bản
+            $query = ChamCong::with(['nhanVien.phongBan', 'caLamViec']);
+            if ($from && $to) {
+                $query->whereBetween('ngay', [$from, $to]);
+            }
+            if ($phongBanId) {
+                $query->whereHas('nhanVien', fn($q) => $q->where('phong_ban_id', $phongBanId));
+            }
 
-        // Tổng hợp số ngày công, số lần đi muộn, ...
-        // (Có thể thêm logic tổng hợp ở đây)
-        return response()->json(['success' => true, 'data' => $data]);
+            $chamCongData = $query->get();
+
+            // Thống kê tổng quan - Tính theo số nhân viên và ngày làm việc
+            $tong_nhan_vien = NhanVien::where('trang_thai', 1)->count();
+            $so_ngay_lam_viec = Carbon::parse($from)->diffInDays(Carbon::parse($to)) + 1;
+            $tong_ngay_cong_ly_thuyet = $tong_nhan_vien * $so_ngay_lam_viec;
+            
+            // Thống kê thực tế từ dữ liệu chấm công
+            $tong_ngay_cong_thuc_te = $chamCongData->count();
+            $co_cham_cong = $chamCongData->whereNotNull('gio_vao')->count();
+            $khong_cham_cong = $tong_ngay_cong_ly_thuyet - $co_cham_cong;
+
+            // Thống kê theo trạng thái
+            $co_mat = $chamCongData->where('trang_thai', 'co_mat')->count();
+            $tre = $chamCongData->where('trang_thai', 'tre')->count();
+            $som = $chamCongData->where('trang_thai', 'som')->count();
+            $vang_mat = $chamCongData->where('trang_thai', 'vang_mat')->count();
+            $khac = $chamCongData->whereNotIn('trang_thai', ['co_mat', 'tre', 'som', 'vang_mat'])->count();
+
+            // Thống kê theo phòng ban
+            $theo_phong_ban = $chamCongData->groupBy('nhanVien.phongBan.ten')
+                ->map(function($group) {
+                    return [
+                        'phong_ban' => $group->first()->nhanVien->phongBan->ten ?? 'Không xác định',
+                        'tong_ngay' => $group->count(),
+                        'co_mat' => $group->where('trang_thai', 'co_mat')->count(),
+                        'tre' => $group->where('trang_thai', 'tre')->count(),
+                        'som' => $group->where('trang_thai', 'som')->count(),
+                        'vang_mat' => $group->where('trang_thai', 'vang_mat')->count(),
+                    ];
+                })->values();
+
+            // Thống kê theo ngày trong tuần
+            $theo_ngay_trong_tuan = $chamCongData->groupBy(function($item) {
+                return Carbon::parse($item->ngay)->format('l'); // Tên ngày trong tuần
+            })->map(function($group) {
+                return [
+                    'ngay' => $group->first()->ngay,
+                    'tong_ngay' => $group->count(),
+                                            'co_mat' => $group->where('trang_thai', 'co_mat')->count(),
+                        'tre' => $group->where('trang_thai', 'tre')->count(),
+                        'som' => $group->where('trang_thai', 'som')->count(),
+                        'vang_mat' => $group->where('trang_thai', 'vang_mat')->count(),
+                ];
+            })->values();
+
+            // Thống kê hôm nay
+            $hom_nay = now()->toDateString();
+            $cham_cong_hom_nay = ChamCong::where('ngay', $hom_nay)->count();
+            $nhan_vien_hom_nay = NhanVien::where('trang_thai', 1)->count();
+            $ty_le_cham_cong_hom_nay = $nhan_vien_hom_nay > 0 ? round(($cham_cong_hom_nay / $nhan_vien_hom_nay) * 100, 2) : 0;
+
+            // Thống kê tuần này
+            $tuan_nay = [
+                now()->startOfWeek()->toDateString(),
+                now()->endOfWeek()->toDateString()
+            ];
+            $cham_cong_tuan_nay = ChamCong::whereBetween('ngay', $tuan_nay)->count();
+
+            // Thống kê tháng này
+            $thang_nay = [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString()
+            ];
+            $cham_cong_thang_nay = ChamCong::whereBetween('ngay', $thang_nay)->count();
+
+            // Thống kê vắng mặt hôm nay
+            $vang_mat_hom_nay = ChamCong::where('ngay', $hom_nay)
+                ->where('trang_thai', 'vang_mat')
+                ->count();
+
+            // Thống kê top nhân viên chấm công đúng giờ
+            $top_nhan_vien_dung_gio = $chamCongData
+                ->groupBy('nhan_vien_id')
+                ->map(function($group) {
+                    $nhanVien = $group->first()->nhanVien;
+                    $dungGio = $group->where('trang_thai', 'co_mat')->count();
+                    $tongNgay = $group->count();
+                    return [
+                        'nhan_vien_id' => $nhanVien->id,
+                        'ten' => $nhanVien->ten,
+                        'phong_ban' => $nhanVien->phongBan->ten ?? 'Không xác định',
+                        'dung_gio' => $dungGio,
+                        'tong_ngay' => $tongNgay,
+                        'ty_le' => $tongNgay > 0 ? round(($dungGio / $tongNgay) * 100, 2) : 0
+                    ];
+                })
+                ->sortByDesc('ty_le')
+                ->take(5)
+                ->values();
+
+            // Thống kê theo giờ chấm công
+            $theo_gio_cham_cong = $chamCongData
+                ->groupBy(function($item) {
+                    return Carbon::parse($item->gio_vao)->format('H:00');
+                })
+                ->map(function($group) {
+                    return [
+                        'gio' => $group->first()->gio_vao ? Carbon::parse($group->first()->gio_vao)->format('H:00') : 'Không xác định',
+                        'so_luong' => $group->count()
+                    ];
+                })
+                ->sortBy('gio')
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'tong_quan' => [
+                        'tong_ngay_cong' => $tong_ngay_cong_thuc_te,
+                        'co_cham_cong' => $co_cham_cong,
+                        'khong_cham_cong' => $khong_cham_cong,
+                        'ty_le_cham_cong' => $tong_ngay_cong_ly_thuyet > 0 ? round(($co_cham_cong / $tong_ngay_cong_ly_thuyet) * 100, 2) : 0,
+                        'tong_nhan_vien' => $tong_nhan_vien,
+                        'so_ngay_lam_viec' => $so_ngay_lam_viec
+                    ],
+                    'theo_trang_thai' => [
+                        'co_mat' => $co_mat,
+                        'tre' => $tre,
+                        'som' => $som,
+                        'vang_mat' => $vang_mat,
+                        'khac' => $khac
+                    ],
+                    'theo_phong_ban' => $theo_phong_ban,
+                    'theo_ngay_trong_tuan' => $theo_ngay_trong_tuan,
+                    'hom_nay' => [
+                        'cham_cong' => $cham_cong_hom_nay,
+                        'nhan_vien' => $nhan_vien_hom_nay,
+                        'ty_le' => $ty_le_cham_cong_hom_nay,
+                        'vang_mat' => $vang_mat_hom_nay
+                    ],
+                    'tuan_nay' => $cham_cong_tuan_nay,
+                    'thang_nay' => $cham_cong_thang_nay,
+                    'top_nhan_vien_dung_gio' => $top_nhan_vien_dung_gio,
+                    'theo_gio_cham_cong' => $theo_gio_cham_cong,
+                    'khoang_thoi_gian' => [
+                        'tu' => $from,
+                        'den' => $to
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy dữ liệu dashboard chấm công: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // 4. Xuất Excel
@@ -179,7 +302,7 @@ class ChamCongController extends Controller
 
         // Kiểm tra descriptor đã tồn tại cho nhân viên khác chưa
         $allFaces = \App\Models\FaceData::where('nhan_vien_id', '!=', $nhanVienId)->get();
-        $threshold = 0.6; // hoặc giá trị bạn dùng cho nhận diện
+        $threshold = 0.45; // Giảm threshold để tránh trùng lặp
         foreach ($allFaces as $face) {
             $stored = is_string($face->face_descriptor) ? json_decode($face->face_descriptor) : $face->face_descriptor;
             if (!is_array($stored)) continue;
@@ -222,20 +345,209 @@ class ChamCongController extends Controller
         }
     }
 
+    // API để kiểm tra khuôn mặt và trả về thông tin nhân viên
+    public function identifyFace(Request $request)
+    {
+        try {
+            $inputDescriptor = $request->face_descriptor;
+            $result = $this->findNhanVienByFaceWithConfidence($inputDescriptor);
+            
+            if ($result['nhanVien']) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'nhan_vien' => [
+                            'id' => $result['nhanVien']->id,
+                            'ten' => $result['nhanVien']->ten,
+                            'ma_nhan_vien' => $result['nhanVien']->ma_nhan_vien,
+                            'email' => $result['nhanVien']->email,
+                            'phong_ban' => $result['nhanVien']->phongBan->ten ?? 'Không xác định'
+                        ],
+                        'identified' => true,
+                        'confidence' => $result['confidence'],
+                        'distance' => $result['distance']
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'identified' => false,
+                        'message' => 'Không nhận diện được khuôn mặt'
+                    ]
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi nhận diện khuôn mặt: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Hàm mới để nhận diện với độ tin cậy
+    protected function findNhanVienByFaceWithConfidence($inputDescriptor)
+    {
+        $threshold = 0.45;
+        $faces = FaceData::with('nhanVien')->get();
+        
+        $bestMatch = null;
+        $bestDistance = PHP_FLOAT_MAX;
+        
+        foreach ($faces as $face) {
+            $stored = is_string($face->face_descriptor) ? json_decode($face->face_descriptor) : $face->face_descriptor;
+            if (!is_array($stored)) continue;
+            
+            $distance = $this->calculateEuclideanDistance($inputDescriptor, $stored);
+            
+            if ($distance < $threshold && $distance < $bestDistance) {
+                $bestMatch = $face->nhanVien;
+                $bestDistance = $distance;
+            }
+        }
+        
+        if ($bestMatch) {
+            // Tính độ tin cậy (confidence) dựa trên khoảng cách
+            $confidence = max(0, 100 - ($bestDistance / $threshold) * 100);
+            return [
+                'nhanVien' => $bestMatch,
+                'distance' => $bestDistance,
+                'confidence' => round($confidence, 2)
+            ];
+        }
+        
+        return [
+            'nhanVien' => null,
+            'distance' => null,
+            'confidence' => 0
+        ];
+    }
+
+    // Check-out riêng biệt (nếu cần)
+    public function checkOut(Request $request)
+    {
+        $inputDescriptor = $request->face_descriptor;
+        $nhanVien = $this->findNhanVienByFace($inputDescriptor);
+        if (!$nhanVien) {
+            return response()->json(['success' => false, 'message' => 'Không nhận diện được khuôn mặt'], 400);
+        }
+
+        $ca = $nhanVien->caLamViec ?? CaLamViec::first();
+        if (!$ca) {
+            return response()->json(['success' => false, 'message' => 'Không xác định được ca làm việc'], 400);
+        }
+
+        $today = now()->toDateString();
+        $now = now();
+
+        // Ghi AccessLog
+        AccessLog::create([
+            'nhan_vien_id' => $nhanVien->id,
+            'thoi_gian' => $now,
+            'loai_su_kien' => 'ra',
+            'vi_tri' => $request->input('vi_tri'),
+            'ghi_chu' => $request->input('device_info')
+        ]);
+
+        // Cập nhật chấm công
+        $chamCong = ChamCong::where('nhan_vien_id', $nhanVien->id)
+            ->where('ngay', $today)
+            ->where('ca_lam_viec_id', $ca->id)
+            ->first();
+
+        if ($chamCong) {
+            $chamCong->update([
+                'gio_ra' => $now->format('H:i:s'),
+                'trang_thai' => $this->tinhTrangThaiRa($nhanVien, $now, $ca),
+                'ghi_chu' => trim(($chamCong->ghi_chu ?? '') . ' | Chấm công ra bằng khuôn mặt')
+            ]);
+        }
+
+        return response()->json(['success' => true, 'data' => $chamCong, 'nhan_vien' => $nhanVien]);
+    }
+
+    // Lấy lịch sử chấm công của nhân viên
+    public function getAttendanceHistory($employeeId)
+    {
+        $chamCongs = ChamCong::where('nhan_vien_id', $employeeId)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('ngay', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy tất cả chấm công
+    public function getAllAttendance(Request $request)
+    {
+        $query = ChamCong::with(['nhanVien', 'caLamViec']);
+        
+        if ($request->from) $query->where('ngay', '>=', $request->from);
+        if ($request->to) $query->where('ngay', '<=', $request->to);
+        if ($request->nhan_vien_id) $query->where('nhan_vien_id', $request->nhan_vien_id);
+        
+        $chamCongs = $query->orderBy('ngay', 'desc')->get();
+        
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay
+    public function getTodayAttendance()
+    {
+        $today = now()->toDateString();
+        $chamCongs = ChamCong::where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->orderBy('gio_vao', 'asc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $chamCongs]);
+    }
+
+    // Lấy chấm công hôm nay của nhân viên cụ thể
+    public function getEmployeeTodayAttendance($employeeId)
+    {
+        $today = now()->toDateString();
+        $chamCong = ChamCong::where('nhan_vien_id', $employeeId)
+            ->where('ngay', $today)
+            ->with(['nhanVien', 'caLamViec'])
+            ->first();
+
+        return response()->json(['success' => true, 'data' => $chamCong]);
+    }
+
     // ====== Các hàm phụ trợ ======
     protected function findNhanVienByFace($inputDescriptor)
     {
         // So sánh descriptor, trả về NhanVien nếu tìm thấy
-        // (Bạn có thể dùng Euclidean distance như đã làm)
-        $threshold = 0.6;
+        $threshold = 0.45; // Giảm threshold để tăng độ chính xác
         $faces = FaceData::with('nhanVien')->get();
+        
+        $bestMatch = null;
+        $bestDistance = PHP_FLOAT_MAX;
+        
         foreach ($faces as $face) {
             $stored = is_string($face->face_descriptor) ? json_decode($face->face_descriptor) : $face->face_descriptor;
             if (!is_array($stored)) continue;
+            
             $distance = $this->calculateEuclideanDistance($inputDescriptor, $stored);
-            if ($distance < $threshold) return $face->nhanVien;
+            
+            // Ghi log để debug
+            \Log::info("Face recognition - Employee: {$face->nhanVien->ten}, Distance: {$distance}, Threshold: {$threshold}");
+            
+            // Chỉ nhận diện nếu khoảng cách đủ gần
+            if ($distance < $threshold && $distance < $bestDistance) {
+                $bestMatch = $face->nhanVien;
+                $bestDistance = $distance;
+            }
         }
-        return null;
+        
+        if ($bestMatch) {
+            \Log::info("Face recognition successful - Employee: {$bestMatch->ten}, Distance: {$bestDistance}");
+        } else {
+            \Log::warning("Face recognition failed - No match found below threshold: {$threshold}");
+        }
+        
+        return $bestMatch;
     }
 
     protected function calculateEuclideanDistance($desc1, $desc2)
@@ -265,19 +577,12 @@ class ChamCongController extends Controller
     {
         $gioVao = Carbon::parse($now);
         $gioBatDau = Carbon::parse($ca->gio_bat_dau);
-        $tre = $gioBatDau->diffInMinutes($gioVao, false);
+        $tre = $gioVao->diffInMinutes($gioBatDau, false);
         
-        // Nếu $tre <= 0: đến sớm hoặc đúng giờ
-        // Nếu $tre > 0: đến muộn
         if ($tre <= 0) {
             return 'co_mat'; // Đến sớm hoặc đúng giờ
         } else {
-            // Đến muộn
-            if ($tre <= $ca->phut_tre_cho_phep) {
-                return 'tre'; // Muộn trong giới hạn cho phép
-            } else {
-                return 'tre'; // Muộn quá giới hạn
-            }
+            return 'tre'; // Đi muộn
         }
     }
 
@@ -287,16 +592,24 @@ class ChamCongController extends Controller
         $gioKetThuc = Carbon::parse($ca->gio_ket_thuc);
         $som = $gioRa->diffInMinutes($gioKetThuc, false);
         
-        // Nếu $som < 0: về sớm
-        // Nếu $som >= 0: về đúng hoặc muộn
-        if ($som < 0) {
-            if (abs($som) <= $ca->phut_som_cho_phep) {
-                return 'som'; // Về sớm trong giới hạn cho phép
-            } else {
-                return 'som'; // Về sớm quá giới hạn
-            }
+        if ($som >= 0) {
+            return 'co_mat'; // Về đúng giờ hoặc muộn
         } else {
-            return 'co_mat'; // Về đúng hoặc muộn
+            return 'som'; // Về sớm
+        }
+    }
+
+    protected function tinhTrangThaiTongHop($trangThaiVao, $trangThaiRa)
+    {
+        // Logic tính trạng thái tổng hợp dựa trên giờ vào và giờ ra
+        if ($trangThaiVao === 'co_mat' && $trangThaiRa === 'co_mat') {
+            return 'co_mat'; // Vào đúng giờ và ra đúng giờ
+        } elseif ($trangThaiVao === 'tre') {
+            return 'tre'; // Đi muộn (ưu tiên hơn về sớm)
+        } elseif ($trangThaiRa === 'som') {
+            return 'som'; // Về sớm
+        } else {
+            return 'co_mat'; // Mặc định
         }
     }
 }

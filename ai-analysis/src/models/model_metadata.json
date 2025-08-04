@@ -1,0 +1,23 @@
+{
+  "feature_names": [
+    "so_ngay_di_lam",
+    "so_lan_di_muon",
+    "so_lan_ve_som",
+    "gio_lam_viec_tb",
+    "tong_ngay_nghi_phep",
+    "so_don_nghi_phep",
+    "so_nam_lam_viec",
+    "phong_ban_encoded",
+    "chuc_vu_encoded",
+    "tuoi"
+  ],
+  "model_info": {
+    "algorithm": "RandomForestClassifier",
+    "n_estimators": 100,
+    "max_depth": 10,
+    "accuracy": 0.5,
+    "cv_accuracy": 0.7
+  },
+  "model_path": "models/attrition_model.pkl",
+  "scaler_path": "models/scaler.pkl"
+}

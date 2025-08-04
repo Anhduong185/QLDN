@@ -84,8 +84,9 @@ def predict():
         # Chuẩn bị dữ liệu
         features = np.array([[data[f] for f in required_features]])
         
-        # Scale features
-        features_scaled = scaler.transform(features)
+        # Scale features với feature names để tránh warning
+        features_df = pd.DataFrame(features, columns=feature_names)
+        features_scaled = scaler.transform(features_df)
         
         # Dự đoán
         prediction = model.predict(features_scaled)[0]
@@ -136,7 +137,8 @@ def predict_batch():
                 
                 # Chuẩn bị dữ liệu
                 features = np.array([[employee[f] for f in feature_names]])
-                features_scaled = scaler.transform(features)
+                features_df = pd.DataFrame(features, columns=feature_names)
+                features_scaled = scaler.transform(features_df)
                 
                 # Dự đoán
                 prediction = model.predict(features_scaled)[0]
@@ -228,8 +230,9 @@ def update_model():
             X_new = np.array(new_features)
             y_new = np.array(new_labels)
             
-            # Scale dữ liệu mới
-            X_new_scaled = scaler.transform(X_new)
+            # Scale dữ liệu mới với feature names để tránh warning
+            X_new_df = pd.DataFrame(X_new, columns=feature_names)
+            X_new_scaled = scaler.transform(X_new_df)
             
             # Cập nhật model với dữ liệu mới
             model.fit(X_new_scaled, y_new)

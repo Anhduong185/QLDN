@@ -14,7 +14,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
 -- Dumping database structure for qldn_nhansu
 CREATE DATABASE IF NOT EXISTS `qldn_nhansu` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `qldn_nhansu`;
@@ -144,7 +143,7 @@ CREATE TABLE IF NOT EXISTS `face_data` (
   `face_descriptor` json NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`id~`),
   UNIQUE KEY `face_data_nhan_vien_id_unique` (`nhan_vien_id`),
   CONSTRAINT `face_data_nhan_vien_id_foreign` FOREIGN KEY (`nhan_vien_id`) REFERENCES `nhan_vien` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -221,6 +220,13 @@ CREATE TABLE IF NOT EXISTS `nhan_vien` (
   `gioi_tinh` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ngay_sinh` date DEFAULT NULL,
   `dia_chi` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ngay_vao_lam` date DEFAULT NULL,
+  `luong_co_ban` decimal(12,2) DEFAULT NULL,
+  `cmnd_cccd` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `noi_sinh` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `dan_toc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ton_giao` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tinh_trang_hon_nhan` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `phong_ban_id` bigint unsigned DEFAULT NULL,
   `chuc_vu_id` bigint unsigned DEFAULT NULL,
   `anh_dai_dien` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -286,6 +292,18 @@ REPLACE INTO `phong_ban` (`id`, `ten`, `mo_ta`, `created_at`, `updated_at`) VALU
 	(3, 'Phòng IT', 'Công nghệ thông tin', '2025-07-23 17:04:15', '2025-07-23 17:04:15'),
 	(4, 'Phòng Marketing', 'Tiếp thị', '2025-07-23 17:04:15', '2025-07-23 17:04:15');
 
+-- Dumping structure for table qldn_nhansu.du_lieu_khuon_mat
+CREATE TABLE IF NOT EXISTS `du_lieu_khuon_mat` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `nhan_vien_id` bigint unsigned NOT NULL,
+  `du_lieu_khuon_mat` json NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `du_lieu_khuon_mat_nhan_vien_id_unique` (`nhan_vien_id`),
+  CONSTRAINT `du_lieu_khuon_mat_nhan_vien_id_foreign` FOREIGN KEY (`nhan_vien_id`) REFERENCES `nhan_vien` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dumping structure for table qldn_nhansu.tai_khoan
 CREATE TABLE IF NOT EXISTS `tai_khoan` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -318,9 +336,18 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table qldn_nhansu.users: ~0 rows (approximately)
+-- Data exporting was unselected.
 
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
+
+-- Data exporting was unselected.
